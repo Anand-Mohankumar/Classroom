@@ -24,7 +24,7 @@ window.createClassroomDaylight = function createClassroomDaylight(renderer, sun,
       eye: { value: null },
       sunlight: { value: slopes },
       windows: { value: new T.Vector3(...windows) },
-      hazeColor: { value: new T.Color("#ffdfab") }
+      hazeColor: { value: new T.Color("#ffdaa0") }
     },
     vertexShader: `
       varying vec2 screenUV;
@@ -58,7 +58,7 @@ window.createClassroomDaylight = function createClassroomDaylight(renderer, sun,
       float densityAlong(vec2 path, vec3 ray) {
         float lengthInside = max(path.y - path.x, 0.0);
         float roomX = clamp(eye.x + ray.x * (path.x + path.y) * 0.5, windowWall, 5.8);
-        return lengthInside * mix(1.0, 0.34, smoothstep(windowWall, 5.8, roomX));
+        return lengthInside * mix(1.0, 0.28, smoothstep(windowWall, 5.8, roomX));
       }
 
       float panes(vec2 lower, vec2 upper, vec3 origin, vec3 inverseRay, vec3 ray, float feather) {
@@ -104,7 +104,7 @@ window.createClassroomDaylight = function createClassroomDaylight(renderer, sun,
         float halo = scatter(path, origin, inverseRay, ray, glazing, 0.14);
         // Brighter shafts come through gaps in the trees beyond the upper panes.
         float sunbreaks = scatter(path, origin, inverseRay, ray, vec4(3.03, 3.36, 3.91, 4.24), 0.022);
-        float amount = core * 0.038 + halo * 0.013 + sunbreaks * 0.16;
+        float amount = core * 0.025 + halo * 0.011 + sunbreaks * 0.28;
         float facingTheWindow = 0.82 + 0.18 * max(dot(-ray, normalize(sunlight)), 0.0);
         float opacity = 1.0 - exp(-amount * facingTheWindow);
         gl_FragColor = vec4(hazeColor, opacity);

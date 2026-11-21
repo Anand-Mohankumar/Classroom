@@ -5,7 +5,7 @@ window.createClassroomRoom = function createClassroomRoom(stage, canvas, board, 
   const renderer = new T.WebGLRenderer({ canvas, antialias: true, alpha: false });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.6));
   renderer.toneMapping = T.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.18;
+  renderer.toneMappingExposure = 1.12;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = T.PCFShadowMap;
   renderer.shadowMap.autoUpdate = false;
@@ -27,6 +27,7 @@ window.createClassroomRoom = function createClassroomRoom(stage, canvas, board, 
   let lastFrameTime = 0;
   let frame = 0;
   let sourceReady;
+  let clockTimer;
 
   function randomSequence(seed) {
     return () => {
@@ -118,8 +119,8 @@ window.createClassroomRoom = function createClassroomRoom(stage, canvas, board, 
   const boards = paintWood(true);
   boards.wrapS = boards.wrapT = T.RepeatWrapping;
   boards.repeat.set(4, 5);
-  const flooring = material("#d0b295", { map: boards, roughness: .67 });
-  const oak = material("#e6c9a4", { map: paintWood(false), roughness: .47 });
+  const flooring = material("#d0b295", { map: boards, roughness: .56 });
+  const oak = material("#e6c9a4", { map: paintWood(false), roughness: .39 });
   const oakEdge = material("#996b3c");
   const darkWood = material("#654830", { roughness: .58 });
   const iron = material("#253832", { metalness: .30 });
@@ -131,7 +132,7 @@ window.createClassroomRoom = function createClassroomRoom(stage, canvas, board, 
   const trim = material("#647369");
   const windowFrame = material("#e1d3ae", { roughness: .59 });
   const ceiling = material("#b9b39e");
-  const white = material("#fff8e7", { roughness: .72 });
+  const lampDiffuser = material("#fff9ec", { emissive: "#fff3e2", emissiveIntensity: 1.85, roughness: .52 });
   const caseColors = ["#a34632", "#5d785d", "#1b4c5c", "#b48a4a", "#998372"].map(color => material(color));
   const pages = material("#eee2bd");
 
@@ -183,7 +184,7 @@ window.createClassroomRoom = function createClassroomRoom(stage, canvas, board, 
     photo.addEventListener("load", () => {
       outdoors.map = new T.CanvasTexture(photo);
       outdoors.map.colorSpace = T.SRGBColorSpace;
-      outdoors.color.set("#ffffff");
+      outdoors.color.set("#fff3dd").multiplyScalar(1.24);
       outdoors.needsUpdate = true;
       sourceReady?.();
     }, { once: true });
@@ -196,14 +197,18 @@ window.createClassroomRoom = function createClassroomRoom(stage, canvas, board, 
       box(scene, .035, .45, .035, x + .63, 5.67, z, iron);
       box(scene, .035, .45, .035, x - .63, 5.67, z, iron);
       box(scene, 1.8, .12, .33, x, 5.45, z, trim);
-      box(scene, 1.66, .032, .27, x, 5.375, z, white);
+      box(scene, 1.66, .032, .27, x, 5.375, z, lampDiffuser);
+      const lamp = new T.SpotLight("#fff3e5", 22, 10, Math.PI * .29, .76);
+      lamp.position.set(x, 5.35, z);
+      lamp.target.position.set(x, .4, z);
+      scene.add(lamp, lamp.target);
     }
   }
 
   const boardGroup = new T.Group();
   boardGroup.position.set(0, 3.28, .23);
   scene.add(boardGroup);
-  const panel = material("#f9f6e9", { roughness: .76, emissive: "#403c26", emissiveIntensity: .15 });
+  const panel = material("#f9f6e9", { roughness: .76, emissive: "#b6b3a4", emissiveIntensity: .31 });
   box(boardGroup, boardWidth + .22, boardHeight + .22, .15, 0, 0, -.015, iron, true);
   box(boardGroup, boardWidth, boardHeight, .045, 0, 0, .071, panel);
   box(boardGroup, boardWidth + .28, .095, .31, 0, -boardHeight / 2 - .065, .185, trim);
@@ -227,18 +232,39 @@ window.createClassroomRoom = function createClassroomRoom(stage, canvas, board, 
       context.lineWidth = 5;
       context.stroke();
     }
-    context.beginPath();
-    context.moveTo(-43, -34);
-    context.lineTo(0, 0);
-    context.lineTo(50, -67);
-    context.lineWidth = 8;
-    context.stroke();
   });
   const clockFrame = cylinder(scene, .35, .08, 0, 5.55, .07, iron);
   clockFrame.rotation.x = Math.PI / 2;
   const clock = new T.Mesh(new T.CircleGeometry(.303, 40), new T.MeshBasicMaterial({ map: clockFace }));
   clock.position.set(0, 5.55, .116);
   scene.add(clock);
+  const handInk = new T.MeshBasicMaterial({ color: "#313630", toneMapped: false });
+
+  function clockHand(name, length, width, depth) {
+    const hand = new T.Group();
+    hand.name = name;
+    hand.position.z = depth;
+    box(hand, width, length, .001, 0, length / 2 - .009, 0, handInk);
+    clock.add(hand);
+    return hand;
+  }
+
+  const hourHand = clockHand("clock-hour-hand", .164, .020, .004);
+  const minuteHand = clockHand("clock-minute-hand", .222, .014, .007);
+  const pin = new T.Mesh(new T.CircleGeometry(.017, 16), handInk);
+  pin.position.z = .01;
+  clock.add(pin);
+
+  function refreshClock() {
+    clearTimeout(clockTimer);
+    if (document.hidden) return;
+    const localTime = new Date();
+    const minute = localTime.getMinutes();
+    hourHand.rotation.z = -(localTime.getHours() % 12 + minute / 60) * Math.PI / 6;
+    minuteHand.rotation.z = -minute * Math.PI / 30;
+    if (progress === 1) draw();
+    clockTimer = setTimeout(refreshClock, 60000 - localTime.getSeconds() * 1000 - localTime.getMilliseconds() + 15);
+  }
 
   function desk(x, z, width, depth, parent = scene) {
     box(parent, width, .123, depth, x, .908, z, oak, true);
@@ -400,12 +426,12 @@ window.createClassroomRoom = function createClassroomRoom(stage, canvas, board, 
     scene.add(leaf);
   }
 
-  scene.add(new T.HemisphereLight("#e9f0f3", "#a6a193", 1.48));
-  scene.add(new T.AmbientLight("#f2e6d3", .32));
-  const soft = new T.DirectionalLight("#e5edf5", 1.05);
+  scene.add(new T.HemisphereLight("#d1e4f6", "#8094a5", .98));
+  scene.add(new T.AmbientLight("#e2dbd0", .16));
+  const soft = new T.DirectionalLight("#e4ecf5", .75);
   soft.position.set(2, 5.6, 9.9);
   scene.add(soft);
-  const sun = new T.DirectionalLight("#ffd6a1", 3.85);
+  const sun = new T.DirectionalLight("#ffd098", 5.65);
   sun.position.set(-13, 6.35, 2.53);
   sun.target.position.set(2, 0, 9.2);
   sun.castShadow = true;
@@ -413,7 +439,7 @@ window.createClassroomRoom = function createClassroomRoom(stage, canvas, board, 
   Object.assign(sun.shadow.camera, { left: -12, right: 12, top: 10, bottom: -10, near: .3, far: 36 });
   sun.shadow.bias = -.00022;
   sun.shadow.normalBias = .038;
-  sun.shadow.radius = 2.35;
+  sun.shadow.radius = 1.75;
   scene.add(sun, sun.target);
   const daylight = window.createClassroomDaylight?.(renderer, sun, windowBays);
 
@@ -527,6 +553,9 @@ window.createClassroomRoom = function createClassroomRoom(stage, canvas, board, 
 
   function stop() {
     cancelAnimationFrame(frame);
+    clearTimeout(clockTimer);
+    document.removeEventListener("visibilitychange", refreshClock);
+    window.removeEventListener("focus", refreshClock);
     sourceReady = undefined;
     daylight?.dispose();
   }
@@ -548,7 +577,10 @@ window.createClassroomRoom = function createClassroomRoom(stage, canvas, board, 
   }
 
   sourceReady = draw;
+  refreshClock();
   resize();
+  document.addEventListener("visibilitychange", refreshClock);
+  window.addEventListener("focus", refreshClock);
   document.fonts.load("700 61px Kalam").then(() => {
     paintBookCover();
     sourceReady?.();
