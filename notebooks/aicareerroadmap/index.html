@@ -6,9 +6,14 @@
   <meta name="theme-color" content="#fbf8ef">
   <meta name="description" content="Explore Tutorial Island and six AI career paths in an illustrated field guide.">
   <title>AI Career Roadmap</title>
+  <link rel="canonical" href="https://classroom.cyberamo.work/notebooks/aicareerroadmap/">
   <link rel="icon" href="assets/tutorial-island-roadmap.webp" type="image/webp">
   <link rel="stylesheet" href="styles.css">
   <script>
+    if (/^https?:$/.test(location.protocol) && location.pathname.endsWith("/index.html")) {
+      history.replaceState(history.state, "", "./" + location.search + location.hash);
+    }
+
     if (!matchMedia("(prefers-reduced-motion: reduce)").matches &&
         performance.getEntriesByType("navigation")[0]?.type !== "back_forward") {
       document.documentElement.classList.add("is-opening");
