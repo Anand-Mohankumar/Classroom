@@ -37,7 +37,7 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 *, *::before, *::after, dialog::backdrop { cursor: var(--pen-cursor); }
-html { scroll-behavior: smooth; scroll-padding-top: calc(var(--header) + 1rem); }
+html { scroll-padding-top: calc(var(--header) + 1rem); }
 body {
   margin: 0;
   color: var(--ink);
@@ -202,10 +202,13 @@ kbd { color: var(--muted); font: 700 .88rem/1 var(--writing); border: 1px solid 
     background-blend-mode: normal, multiply, normal;
   }
   .is-opening:not(.is-opening-ready) .site-header { opacity: 0; }
+  .is-opening:not(.is-opening-ready) .book,
+  .is-opening .chapter,
+  .is-opening .bookmarks,
+  .is-opening .first-sheet .chapter-body { visibility: hidden; }
   .is-opening-ready .opening-desk,
   .is-opening-ready .opening-book { animation: clear-opening-scene var(--opening-duration) ease-in-out both; }
-  .is-opening-ready .site-header,
-  .is-opening-ready .chapter-sheet { animation: reveal-reading-ui var(--opening-duration) ease-in-out both; }
+  .is-opening-ready .site-header { animation: reveal-reading-ui var(--opening-duration) ease-in-out both; }
   .is-opening-ready .book {
     position: relative;
     z-index: 5;
@@ -555,20 +558,6 @@ mark { background: #f1d988; color: inherit; }
   100% { background-color: transparent; box-shadow: 0 0 0 4px transparent; }
 }
 
-@supports (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) {
-    .chapter-sheet {
-      animation: settle-sheet linear both;
-      animation-timeline: view();
-      animation-range: entry 5% entry 85%;
-    }
-    @keyframes settle-sheet {
-      from { translate: 0 .9rem; }
-      to { translate: 0 0; }
-    }
-  }
-}
-
 @media (max-width: 58rem) {
   :root { --book-gutter: 1rem; }
   .cover { padding: 2rem 1.65rem; gap: 1.45rem; }
@@ -622,22 +611,51 @@ mark { background: #f1d988; color: inherit; }
               linear-gradient(to bottom, transparent, #000 8% 92%, transparent);
   mask-composite: intersect;
 }
-.chapter-body, .chapter-heading { overflow-wrap: anywhere; }
-.chapter-body .note-line { margin-block: .45em; }
+.chapter-body, .chapter-heading { overflow-wrap: break-word; }
+.chapter-body .note-line { max-width: 68ch; margin-block: .65em; }
 .chapter-body :is(li, td, th) .note-line { margin-block: .16em; }
 .chapter-body li > ul, .chapter-body li > ol { margin-block: .25em .55em; }
 .chapter-body hr { border: 0; border-top: 1px solid #ad8f675e; margin-block: 1.5rem; }
-.lecture-table th, .lecture-table td { min-width: 5rem; }
-.lecture-table table { min-width: var(--table-min, 0); }
-.lecture-table table:has(tr > :nth-child(4)) { min-width: max(var(--table-min, 0px), 38rem); }
+.table-block { margin-block: 1.2rem 1.75rem; }
+.table-scroll-hint {
+  margin: 0 0 .3rem;
+  color: #394940;
+  font: 600 .875rem/1.4 system-ui, sans-serif;
+}
+.lecture-table { margin: 0; }
+.lecture-table table,
+.lecture-table table:has(tr > :nth-child(4)) {
+  min-width: var(--table-min, 0);
+  table-layout: fixed;
+  font: 1rem/1.55 system-ui, sans-serif;
+}
+.lecture-table th, .lecture-table td { min-width: 0; }
+.lecture-table thead th { font: inherit; font-weight: 700; }
+.lecture-table :is(td, th) .note-line { max-width: none; }
 .lecture-table td :is(ul, ol) { margin-block: .3rem; }
+.lecture-table td > :is(ul, ol) { padding-inline-start: 1.15rem; }
+:root[data-notebook="linux-fundamentals"] .terminal-table tbody td:first-child {
+  font-family: ui-monospace, Consolas, monospace;
+}
+.ascii-token {
+  display: inline-block;
+  padding-inline: .16em;
+  border-radius: .17em;
+  background: #fff8e8;
+  font-family: ui-monospace, Consolas, monospace;
+  font-weight: 700;
+}
+.ascii-1 { color: #245831; }
+.ascii-2 { color: #89293e; }
+.ascii-3 { color: #1c4c82; }
+.ascii-4 { color: #774608; }
 .note-figure {
+  --figure-edge: clamp(.26rem, 1vw, .65rem);
   position: relative;
   isolation: isolate;
-  width: max-content;
-  max-width: min(100%, 53rem);
+  width: min(100%, 53rem, calc(var(--figure-width) + 2 * var(--figure-edge)));
   margin: 1.45rem auto 1.8rem;
-  padding: clamp(.26rem, 1vw, .65rem);
+  padding: var(--figure-edge);
   background: linear-gradient(#ffefda75, #fff6e380), var(--texture);
   border-radius: .2rem .14rem .23rem .13rem;
   box-shadow: 0 .24rem .6rem #61462238;
@@ -651,8 +669,40 @@ mark { background: #f1d988; color: inherit; }
   border-radius: .22rem .13rem .24rem .16rem;
   content: "";
 }
-.note-figure img { width: auto; max-width: 100%; border-radius: .08rem; }
+.note-figure img { border-radius: .08rem; }
 .lecture-table .note-figure { margin-block: .45rem; }
+.figure-detail { display: block; }
+.figure-detail-icon {
+  display: block;
+  position: relative;
+  margin: .25rem 0 0 auto;
+  width: 1.65rem;
+  height: 1.65rem;
+  border: 1px solid #ae926f;
+  border-radius: .24rem;
+  background: #fff4de;
+  box-shadow: 0 1px 2px #4d3c2e32;
+  pointer-events: none;
+}
+.figure-detail-icon::before,
+.figure-detail-icon::after { content: ""; position: absolute; }
+.figure-detail-icon::before {
+  top: .36rem;
+  left: .36rem;
+  width: .65rem;
+  height: .65rem;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+}
+.figure-detail-icon::after {
+  top: 1rem;
+  left: .92rem;
+  width: .4rem;
+  height: 2px;
+  background: currentColor;
+  rotate: 45deg;
+}
+.figure-detail:is(:hover, :focus-visible) .figure-detail-icon { background: #e0eadb; }
 a[href] { font-weight: 700; }
 a[href]:is(:hover, :focus-visible) {
   text-decoration: underline wavy #235eab;
@@ -664,6 +714,26 @@ a[href]:is(:hover, :focus-visible) {
 @media (max-width: 27rem) {
   .wordmark .book-icon { display: none; }
   .header-actions { gap: .38rem; }
+}
+
+@media (max-width: 58rem) {
+  .chapter-body, .chapter-heading { padding-inline-end: max(2.75rem, 5vw); }
+  .back-to-top {
+    width: 2.2rem;
+    right: .24rem;
+    bottom: max(.7rem, env(safe-area-inset-bottom));
+    font-size: 1.4rem;
+  }
+  .back-to-top span { display: none; }
+  .back-to-top::after { content: "↑"; }
+}
+
+@media (max-width: 42rem) {
+  .lecture-table table.stacked-reference { min-width: 0; }
+  .stacked-reference :is(colgroup, col) { display: none; }
+  .stacked-reference,
+  .stacked-reference :is(tbody, tr, td) { display: block; }
+  .stacked-reference td + td { border-top: 1px solid #c0aa8269; }
 }
 
 .paper-diagram { width: min(100%, 53rem); margin-bottom: .4rem; }

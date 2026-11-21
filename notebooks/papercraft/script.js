@@ -9,6 +9,19 @@ const readingLine = document.querySelector(".reading-line");
 const backToTop = document.querySelector(".back-to-top");
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
+function updateTableHint(frame) {
+  const hint = frame.previousElementSibling;
+  hint.hidden = frame.scrollWidth <= frame.clientWidth + 1;
+}
+
+const tableObserver = new ResizeObserver((entries) => {
+  for (const { target } of entries) updateTableHint(target);
+});
+for (const frame of document.querySelectorAll(".lecture-table")) {
+  updateTableHint(frame);
+  tableObserver.observe(frame);
+}
+
 if (root.classList.contains("is-opening")) {
   const book = document.querySelector(".book");
   const { left, top, width } = book.getBoundingClientRect();
@@ -89,6 +102,14 @@ window.addEventListener("resize", queuePositionUpdate);
 window.addEventListener("pageshow", queuePositionUpdate);
 syncReadingPosition();
 
+backToTop.addEventListener("click", (event) => {
+  if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+  event.preventDefault();
+  if (location.hash !== "#top") history.pushState(null, "", "#top");
+  document.querySelector(".wordmark").focus({ preventScroll: true });
+  window.scrollTo({ top: 0, behavior: reduceMotion.matches ? "instant" : "smooth" });
+});
+
 contentsMenu.querySelector("nav").addEventListener("click", (event) => {
   const link = event.target.closest("a");
   if (!link) return;
@@ -118,7 +139,7 @@ searchDialog.addEventListener("click", (event) => {
 
 const indexedEntries = chapters.flatMap((chapter) => {
   const chapterTitle = chapter.querySelector("h2").textContent;
-  const entries = chapter.querySelectorAll("h2, h3, h4, p, .note-line:not(td *, th *), li:not(:has(.note-line)), tbody tr");
+  const entries = chapter.querySelectorAll("h2, h3, h4, p:not(.table-scroll-hint), .note-line:not(td *, th *), li:not(:has(.note-line)), thead tr, tbody tr");
   return [...entries].map((element, index) => {
     if (!element.id) element.id = chapter.id + "-note-" + (index + 1);
     const content = element.matches("tr")
