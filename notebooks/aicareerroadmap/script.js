@@ -127,9 +127,22 @@ document.addEventListener("pointerdown", (event) => {
 const map = document.querySelector(".map-art");
 const mapImage = map.querySelector("img");
 const lens = map.querySelector(".map-lens");
-map.style.setProperty("--lens-image", "url(" + mapImage.getAttribute("src") + ")");
+let lensDetail;
+
+function prepareLensImage() {
+  if (lensDetail?.naturalWidth) return;
+  map.style.setProperty("--lens-image", `url("${mapImage.currentSrc || mapImage.src}")`);
+  if (lensDetail || !mapImage.dataset.lensSrc) return;
+
+  lensDetail = new Image();
+  lensDetail.addEventListener("load", () => {
+    map.style.setProperty("--lens-image", `url("${lensDetail.src}")`);
+  }, { once: true });
+  lensDetail.src = mapImage.dataset.lensSrc;
+}
 
 function showLens(clientX, clientY) {
+  prepareLensImage();
   const bounds = map.getBoundingClientRect();
   const diameter = lens.offsetWidth;
   const halfGlass = diameter * .455;

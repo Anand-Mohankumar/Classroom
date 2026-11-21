@@ -31,7 +31,7 @@
   --section: Caveat, "Segoe Print", "Bradley Hand", cursive;
   --writing: Kalam, "Segoe Print", "Bradley Hand", cursive;
   --reading: "Playpen Sans", "Segoe Print", cursive;
-  --texture: url("assets/paper-grain.webp");
+  --texture: url("assets/paper-grain-optimized.webp");
   --pen-cursor: url("assets/realistic-red-pen-cursor.png") 5 56, auto;
 }
 
@@ -634,7 +634,7 @@ tbody tr:hover { background: #e2e7ca; }
   position: absolute;
   z-index: -1;
   inset: -10% -14%;
-  background: url("assets/back-to-top-torn-paper.png") center / contain no-repeat;
+  background: url("assets/back-to-top-torn-paper-280.webp") center / contain no-repeat;
   filter: drop-shadow(2px 4px 3px #5948385c);
   pointer-events: none;
   content: "";
