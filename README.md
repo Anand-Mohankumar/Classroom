@@ -5,3 +5,5 @@ Classroom is a website for learning technical skills. It brings together trainin
 ## Notebooks
 
 - [AI Career Roadmap](notebooks/aicareerroadmap/) — An illustrated guide to six AI career paths, with skills to build and resources for getting started.
+- [Linux Fundamentals (HTB)](notebooks/linux-fundamentals/) — Lecture notes on Linux, from the filesystem and terminal to system administration and shell scripting.
+- [Networking Fundamentals](notebooks/networking-fundamentals/) — Lecture notes on local networks, network devices, protocols, Ethernet, and routing.
