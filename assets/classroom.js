@@ -86,7 +86,8 @@
     deskTitle.textContent = title;
     deskLink.style.setProperty("--book-cover-color", color);
     if (notebook?.dataset.url) {
-      deskLink.setAttribute("href", notebook.dataset.url);
+      const url = notebook.dataset.url;
+      deskLink.setAttribute("href", location.protocol === "file:" && url.endsWith("/") ? url + "index.html" : url);
       deskLink.setAttribute("aria-label", `${title} (opens in a new tab)`);
     } else {
       const hadFocus = document.activeElement === deskLink;
