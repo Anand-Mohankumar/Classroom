@@ -40,6 +40,19 @@ a:focus-visible, button:focus-visible { outline: 2px dashed currentColor; outlin
   cursor: var(--hand-cursor);
 }
 
+.classroom.is-pointing { --hand-cursor: none; }
+.classroom-hand {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 6;
+  width: var(--hand-size);
+  height: auto;
+  transform: translate3d(var(--hand-x), var(--hand-y), 0) translate(-24.35%, -4.56%);
+  pointer-events: none;
+  user-select: none;
+}
+
 .room-backdrop, .room { position: absolute; inset: 0; width: 100%; height: 100%; }
 .room-backdrop {
   background:

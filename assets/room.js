@@ -5,7 +5,7 @@ window.createClassroomRoom = function createClassroomRoom(stage, canvas, board, 
   const renderer = new T.WebGLRenderer({ canvas, antialias: true, alpha: false });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.6));
   renderer.toneMapping = T.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.19;
+  renderer.toneMappingExposure = 1.18;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = T.PCFShadowMap;
   renderer.shadowMap.autoUpdate = false;
@@ -21,6 +21,7 @@ window.createClassroomRoom = function createClassroomRoom(stage, canvas, board, 
   const roomHeight = 6.25;
   const boardWidth = 7.5;
   const boardHeight = 3.08;
+  const windowBays = [2.48, 5.70, 8.92];
   let boardStretch = 1;
   let progress = 0;
   let lastFrameTime = 0;
@@ -117,8 +118,8 @@ window.createClassroomRoom = function createClassroomRoom(stage, canvas, board, 
   const boards = paintWood(true);
   boards.wrapS = boards.wrapT = T.RepeatWrapping;
   boards.repeat.set(4, 5);
-  const flooring = material("#d0b295", { map: boards, roughness: .78 });
-  const oak = material("#e6c9a4", { map: paintWood(false), roughness: .51 });
+  const flooring = material("#d0b295", { map: boards, roughness: .67 });
+  const oak = material("#e6c9a4", { map: paintWood(false), roughness: .47 });
   const oakEdge = material("#996b3c");
   const darkWood = material("#654830", { roughness: .58 });
   const iron = material("#253832", { metalness: .30 });
@@ -166,7 +167,7 @@ window.createClassroomRoom = function createClassroomRoom(stage, canvas, board, 
   for (const [length, z] of [[1.15, .575], [.55, 4.11], [.55, 7.33], [6.18, 13.91]]) {
     box(scene, .26, 3.11, length, -7.06, 2.94, z, plaster, true);
   }
-  for (const z of [2.48, 5.70, 8.92]) {
+  for (const z of windowBays) {
     for (const offset of [-1.32, 0, 1.32]) box(scene, .22, 3.05, .115, -7.01, 2.98, z + offset, windowFrame, true);
     for (const height of [1.47, 2.55, 4.50]) box(scene, .20, .115, 2.72, -7.01, height, z, windowFrame, true);
     box(scene, .40, .11, 2.81, -6.87, 1.43, z, oakEdge);
@@ -399,21 +400,22 @@ window.createClassroomRoom = function createClassroomRoom(stage, canvas, board, 
     scene.add(leaf);
   }
 
-  scene.add(new T.HemisphereLight("#fff3dc", "#929f91", 1.60));
-  scene.add(new T.AmbientLight("#f4e9d1", .39));
-  const soft = new T.DirectionalLight("#ebe7d5", 1.13);
+  scene.add(new T.HemisphereLight("#e9f0f3", "#a6a193", 1.48));
+  scene.add(new T.AmbientLight("#f2e6d3", .32));
+  const soft = new T.DirectionalLight("#e5edf5", 1.05);
   soft.position.set(2, 5.6, 9.9);
   scene.add(soft);
-  const sun = new T.DirectionalLight("#ffe2ad", 3.1);
-  sun.position.set(-13, 8.5, 3.4);
+  const sun = new T.DirectionalLight("#ffd6a1", 3.85);
+  sun.position.set(-13, 6.35, 2.53);
   sun.target.position.set(2, 0, 9.2);
   sun.castShadow = true;
   sun.shadow.mapSize.set(1536, 1536);
   Object.assign(sun.shadow.camera, { left: -12, right: 12, top: 10, bottom: -10, near: .3, far: 36 });
   sun.shadow.bias = -.00022;
   sun.shadow.normalBias = .038;
-  sun.shadow.radius = 1.8;
+  sun.shadow.radius = 2.35;
   scene.add(sun, sun.target);
+  const daylight = window.createClassroomDaylight?.(renderer, sun, windowBays);
 
   function draw() {
     const motion = ease(progress, .06, .94);
@@ -427,7 +429,8 @@ window.createClassroomRoom = function createClassroomRoom(stage, canvas, board, 
     target.set(doorwayOffset * (.92 - .33 * aisleTurn) - 2.13 * wideRoom * aisleTurn,
       2.42 + .27 * sit + steps * .035, 0);
     camera.lookAt(target);
-    renderer.render(scene, camera);
+    if (daylight) daylight.render(scene, camera);
+    else renderer.render(scene, camera);
   }
 
   function alignBoard(width, height) {
@@ -486,6 +489,7 @@ window.createClassroomRoom = function createClassroomRoom(stage, canvas, board, 
     clockFrame.scale.copy(clock.scale);
     studentDesk.position.x = -1.72 * ease(camera.aspect, 1.01, 1.48);
     renderer.setSize(width, height, false);
+    daylight?.resize(width, height);
     renderer.shadowMap.needsUpdate = true;
     draw();
     if (progress === 1) {
@@ -524,6 +528,7 @@ window.createClassroomRoom = function createClassroomRoom(stage, canvas, board, 
   function stop() {
     cancelAnimationFrame(frame);
     sourceReady = undefined;
+    daylight?.dispose();
   }
 
   function setBookCover(title, color) {
@@ -533,11 +538,20 @@ window.createClassroomRoom = function createClassroomRoom(stage, canvas, board, 
     draw();
   }
 
+  function pencilScreenLength() {
+    const eraser = pencil.localToWorld(new T.Vector3(-.309, 0, 0)).project(camera);
+    const tip = pencil.localToWorld(new T.Vector3(.323, 0, 0)).project(camera);
+    return Math.hypot(
+      (tip.x - eraser.x) * stage.clientWidth / 2,
+      (tip.y - eraser.y) * stage.clientHeight / 2
+    );
+  }
+
   sourceReady = draw;
   resize();
   document.fonts.load("700 61px Kalam").then(() => {
     paintBookCover();
     sourceReady?.();
   });
-  return { resize, sit, walk, stop, setBookCover };
+  return { resize, sit, walk, stop, setBookCover, pencilScreenLength };
 };

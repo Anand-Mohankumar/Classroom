@@ -12,6 +12,7 @@
   const deskLink = stage.querySelector(".desk-notebook");
   const deskTitle = deskLink.querySelector(".desk-title");
   const skip = stage.querySelector(".skip-entrance");
+  const hand = stage.querySelector(".classroom-hand");
   const motion = matchMedia("(prefers-reduced-motion: reduce)");
   let room;
   let seated = false;
@@ -25,6 +26,8 @@
   let wheelTurned = false;
   let touch = null;
   let suppressTouchClickUntil = 0;
+  let handPosition;
+  let handFrame;
 
   function scheduleWelcome() {
     clearTimeout(welcomeTimer);
@@ -42,12 +45,39 @@
     skip.hidden = true;
     deskLink.hidden = false;
     updateDeskBook();
+    scheduleHand();
     writing.classList.add("is-writing");
     if (notebooks.length) {
       document.body.classList.add("has-controls");
       if (returnFocus) next.focus();
     }
     scheduleWelcome();
+  }
+
+  function paintHand() {
+    handFrame = undefined;
+    if (!handPosition || !hand.complete || !hand.naturalWidth) return;
+    const { x, y } = handPosition;
+    const fallbackLength = Math.min(stage.clientWidth, stage.clientHeight) * .28;
+    const pencilLength = seated && room ? room.pencilScreenLength() : fallbackLength;
+    const reach = Math.max(0, Math.min(1, (y / stage.clientHeight - .40) / .35));
+    // The extended index finger makes the pointing pose slightly shorter than the pencil.
+    const handSize = Math.max(64, pencilLength * .94 * (.55 + .45 * reach * reach * (3 - 2 * reach)));
+    hand.style.setProperty("--hand-x", `${x}px`);
+    hand.style.setProperty("--hand-y", `${y}px`);
+    hand.style.setProperty("--hand-size", `${handSize}px`);
+    hand.hidden = false;
+    stage.classList.add("is-pointing");
+  }
+
+  function scheduleHand() {
+    if (handPosition && handFrame === undefined) handFrame = requestAnimationFrame(paintHand);
+  }
+
+  function hideHand() {
+    handPosition = undefined;
+    hand.hidden = true;
+    stage.classList.remove("is-pointing");
   }
 
   function updateDeskBook() {
@@ -114,6 +144,19 @@
   previous.addEventListener("click", () => turn(-1));
   next.addEventListener("click", () => turn(1));
   skip.addEventListener("click", sitDown);
+  hand.addEventListener("load", scheduleHand);
+  stage.addEventListener("pointermove", event => {
+    if (event.pointerType !== "mouse") {
+      hideHand();
+      return;
+    }
+    const bounds = stage.getBoundingClientRect();
+    handPosition = { x: event.clientX - bounds.left, y: event.clientY - bounds.top };
+    scheduleHand();
+  }, { passive: true });
+  stage.addEventListener("pointerleave", hideHand);
+  stage.addEventListener("pointercancel", hideHand);
+  window.addEventListener("blur", hideHand);
   document.addEventListener("visibilitychange", scheduleWelcome);
   motion.addEventListener("change", event => {
     if (!event.matches) return;
@@ -194,7 +237,10 @@
   }
 
   canvas.addEventListener("webglcontextlost", showFallback, { once: true });
-  window.addEventListener("resize", () => room?.resize(), { passive: true });
+  window.addEventListener("resize", () => {
+    room?.resize();
+    scheduleHand();
+  }, { passive: true });
   if (motion.matches) {
     sitDown();
   } else {
