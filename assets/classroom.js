@@ -23,9 +23,9 @@
   let browsed = false;
   let wheelDistance = 0;
   let lastWheelTime = -Infinity;
-  let wheelTurned = false;
+  let wheelDirection = 0;
   let touch = null;
-  let suppressTouchClickUntil = 0;
+  let suppressTouchClick = false;
   let handPosition;
   let handFrame;
 
@@ -166,40 +166,70 @@
 
   stage.addEventListener("wheel", event => {
     if (!seated || event.ctrlKey) return;
+    const dominant = Math.abs(event.deltaY) >= Math.abs(event.deltaX) ? event.deltaY : event.deltaX;
+    if (!dominant) return;
+    event.preventDefault();
     const now = performance.now();
     if (now - lastWheelTime > 180) {
-      wheelTurned = false;
+      wheelDirection = 0;
       wheelDistance = 0;
     }
     lastWheelTime = now;
-    if (wheelTurned) return;
-    const dominant = Math.abs(event.deltaY) >= Math.abs(event.deltaX) ? event.deltaY : event.deltaX;
+    const direction = Math.sign(dominant);
+    if (direction === wheelDirection) {
+      wheelDistance = 0;
+      return;
+    }
+    if (wheelDistance && Math.sign(wheelDistance) !== direction) wheelDistance = 0;
     const multiplier = event.deltaMode === 1 ? 17 : event.deltaMode === 2 ? stage.clientHeight : 1;
     wheelDistance += dominant * multiplier;
     if (Math.abs(wheelDistance) < 32) return;
-    wheelTurned = true;
-    turn(Math.sign(wheelDistance));
-  }, { passive: true });
+    wheelDirection = direction;
+    wheelDistance = 0;
+    turn(direction);
+  }, { passive: false });
 
   stage.addEventListener("pointerdown", event => {
-    if (!seated || event.pointerType !== "touch" || !event.isPrimary) return;
-    touch = { id: event.pointerId, x: event.clientX, y: event.clientY };
+    if (!seated || !event.isPrimary) return;
+    suppressTouchClick = false;
+    if (event.pointerType !== "touch") return;
+    touch = {
+      id: event.pointerId, x: event.clientX, y: event.clientY, started: event.timeStamp, dragging: false,
+      book: event.target.closest(".desk-notebook[href]")
+    };
+  });
+
+  stage.addEventListener("pointermove", event => {
+    if (touch?.id !== event.pointerId || touch.dragging) return;
+    const distance = Math.max(Math.abs(touch.x - event.clientX), Math.abs(touch.y - event.clientY));
+    if (distance < 14) return;
+    touch.dragging = true;
+    stage.setPointerCapture(event.pointerId);
   });
 
   stage.addEventListener("pointerup", event => {
     if (touch?.id !== event.pointerId) return;
-    const x = touch.x - event.clientX;
-    const y = touch.y - event.clientY;
+    const { x, y, started, dragging, book } = touch;
     touch = null;
-    const dominant = Math.abs(x) >= Math.abs(y) ? x : y;
-    if (Math.abs(dominant) < 32) return;
-    suppressTouchClickUntil = performance.now() + 550;
-    turn(Math.sign(dominant));
+    const horizontal = x - event.clientX;
+    const vertical = y - event.clientY;
+    const dominant = Math.abs(horizontal) >= Math.abs(vertical) ? horizontal : vertical;
+    suppressTouchClick = dragging || Math.abs(dominant) >= 32;
+    if (Math.abs(dominant) >= 32) {
+      turn(Math.sign(dominant));
+    } else if (!dragging && Math.abs(dominant) < 14 && event.timeStamp - started < 550 && book &&
+               book.contains(document.elementFromPoint(event.clientX, event.clientY))) {
+      // Open on touch release even when the browser suppresses the follow-up click after a swipe.
+      suppressTouchClick = true;
+      book.click();
+    }
   });
 
   stage.addEventListener("pointercancel", () => { touch = null; });
   stage.addEventListener("click", event => {
-    if (event.detail && performance.now() < suppressTouchClickUntil) {
+    const touchClick = event.pointerType === "touch" || (!event.pointerType && event.isTrusted && event.detail > 0);
+    if (suppressTouchClick && touchClick) {
+      suppressTouchClick = false;
       event.preventDefault();
       event.stopImmediatePropagation();
     }

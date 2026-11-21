@@ -135,7 +135,7 @@ window.createClassroomRoom = function createClassroomRoom(stage, canvas, board, 
       const bevel = Math.min(.018, height / 3);
       const halfX = width / 2 - bevel;
       const halfZ = depth / 2 - bevel;
-      const radius = .033;
+      const radius = Math.min(.033, halfX * .45, halfZ * .45);
       const outline = new T.Shape();
       outline.moveTo(-halfX + radius, -halfZ);
       outline.lineTo(halfX - radius, -halfZ);
@@ -406,7 +406,7 @@ window.createClassroomRoom = function createClassroomRoom(stage, canvas, board, 
   }
 
   const noticeBoard = new T.Group();
-  noticeBoard.position.set(-5.28, 3.50, .027);
+  noticeBoard.position.set(-5.65, 3.82, .027);
   scene.add(noticeBoard);
   const cork = material("#ab8861", { map: wallTexture, bumpMap: wallTexture, bumpScale: .024 });
   box(noticeBoard, 1.46, 1.08, .071, 0, 0, 0, oakEdge, true);
@@ -637,39 +637,13 @@ window.createClassroomRoom = function createClassroomRoom(stage, canvas, board, 
   looseNotes.add(note);
   book(-4.65, 5.03, .08, .44, .55, caseColors[2]);
   book(4.73, 8.48, .13, .54, .66, caseColors[1]);
-  desk(-5.32, 1.76, 2.45, .98);
-  book(-5.74, 1.73, .05, .48, .62, caseColors[4]);
-  bench(-5.32, 2.8, .91);
-
-  // A low bookcase and plant balance the depth of the windows on the opposite side.
-  for (const x of [4.45, 6.67]) box(scene, .11, 1.75, .58, x, .90, .49, darkWood, true);
-  box(scene, 2.30, 1.72, .075, 5.56, .88, .23, darkWood, true);
-  for (const y of [.15, .69, 1.23, 1.77]) box(scene, 2.39, .086, .66, 5.56, y, .53, oak, true);
-  const bookRandom = randomSequence(744);
-  for (const shelf of [.74, 1.28]) {
-    for (let index = 0; index < 8; index++) {
-      const height = .26 + bookRandom() * .18;
-      const x = 4.65 + index * .20;
-      const coverMaterial = caseColors[(index + (shelf < 1 ? 0 : 2)) % caseColors.length];
-      box(scene, .135, height, .28, x, shelf + height / 2, .55, coverMaterial, true);
-      box(scene, .092, .018, .013, x, shelf + height * .74, .697, pages);
-    }
-  }
-
-  const pot = material("#9f5b3e", { roughness: .92 });
-  const leaves = [material("#45694c"), material("#748755"), material("#4c755e")];
-  cylinder(scene, .22, .31, 6.12, 1.96, .49, pot);
-  cylinder(scene, .24, .046, 6.12, 2.13, .49, pot);
-  cylinder(scene, .025, .34, 6.12, 2.28, .49, leaves[0]);
-  for (let index = 0; index < 11; index++) {
-    const angle = index * 2.38;
-    const leaf = new T.Mesh(new T.SphereGeometry(1, 8, 6), leaves[index % leaves.length]);
-    leaf.scale.set(.12, .035, .23);
-    leaf.position.set(6.12 + Math.cos(angle) * .17, 2.33 + index * .023, .49 + Math.sin(angle) * .17);
-    leaf.rotation.set(.25 * (index % 3), angle, (index % 4 - 1.5) * .37);
-    leaf.castShadow = true;
-    scene.add(leaf);
-  }
+  desk(-5.97, 2.03, 1.50, .86);
+  book(-6.04, 2.04, .05, .48, .62, caseColors[4]);
+  bench(-5.97, 2.93, .91);
+  window.addClassroomBookcase?.(scene, {
+    box, slab, material, texture, loadSurface, contactShadow, randomSequence,
+    oak, oakEdge, darkWood, pages, floorShadow, deskShadow
+  });
 
   scene.add(new T.HemisphereLight("#e0e9f5", "#a49a8d", .90));
   scene.add(new T.AmbientLight("#e7dfd3", .21));
