@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#344640">
+  <meta name="description" content="Take a seat in CyberAmo's Classroom and choose a notebook to explore.">
+  <title>CyberAmo's Classroom</title>
+  <link rel="stylesheet" href="assets/classroom.css">
+  <script src="assets/vendor/three.min.js" defer></script>
+  <script src="assets/courtyard-texture.js" defer></script>
+  <script src="assets/room.js" defer></script>
+  <script src="assets/classroom.js" defer></script>
+</head>
+<body>
+  <main class="classroom" aria-label="CyberAmo's Classroom" data-view="seated">
+    <div class="room-backdrop" aria-hidden="true"></div>
+    <canvas class="room" aria-hidden="true" hidden></canvas>
+    <section class="whiteboard" aria-label="Classroom whiteboard">
+      <div class="board-content" aria-live="polite">
+        <h1 class="welcome board-slide">
+          <span class="welcome-name">CyberAmo's</span>
+          <span class="welcome-title">Classroom</span>
+        </h1>
+        <div class="notebook board-slide" data-url="Notebooks/AI%20Career%20Roadmap/index.html"
+             data-cover-color="#32665b" hidden>AI Career Roadmap</div>
+        <div class="board-eraser" aria-hidden="true"></div>
+      </div>
+      <nav class="board-controls" aria-label="Browse notebooks">
+        <button type="button" class="previous" aria-label="Previous notebook">Prev</button>
+        <p class="board-tip">Use the mouse wheel or swipe to cycle between notebooks. Click the book to open.</p>
+        <button type="button" class="next" aria-label="Next notebook">Next</button>
+      </nav>
+    </section>
+    <a class="desk-notebook" target="_blank" rel="noopener" hidden><span class="desk-title"></span></a>
+    <noscript>
+      <a class="desk-notebook" href="Notebooks/AI%20Career%20Roadmap/index.html"
+         target="_blank" rel="noopener"><span class="desk-title">AI Career Roadmap</span></a>
+    </noscript>
+    <button type="button" class="skip-entrance" hidden>Skip intro</button>
+  </main>
+</body>
+</html>
