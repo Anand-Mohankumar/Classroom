@@ -23,6 +23,7 @@ window.createClassroomRoom = function createClassroomRoom(stage, canvas, board, 
   const boardHeight = 3.08;
   const windowBays = [2.48, 5.70, 8.92];
   let boardStretch = 1;
+  let seatShift = 0;
   let progress = 0;
   let lastFrameTime = 0;
   let frame = 0;
@@ -361,7 +362,8 @@ window.createClassroomRoom = function createClassroomRoom(stage, canvas, board, 
   }
 
   const boardGroup = new T.Group();
-  boardGroup.position.set(0, 3.28, .23);
+  boardGroup.name = "classroom-whiteboard";
+  boardGroup.position.set(0, 3.43, .23);
   scene.add(boardGroup);
   const boardGlaze = texture(768, 320, (context, width, height) => {
     const shade = context.createLinearGradient(0, 0, width, height);
@@ -449,10 +451,14 @@ window.createClassroomRoom = function createClassroomRoom(stage, canvas, board, 
       context.fillText(label, x, y);
     }
   });
-  const clockFrame = cylinder(scene, .35, .08, 0, 5.55, .07, iron);
+  const clockX = boardWidth / 2 + .77;
+  const clockRadius = .31;
+  const clockHeight = boardGroup.position.y + .95;
+  const clockFrame = cylinder(scene, clockRadius, .08, clockX, clockHeight, .07, iron);
+  clockFrame.name = "clock-frame";
   clockFrame.rotation.x = Math.PI / 2;
-  const clock = new T.Mesh(new T.CircleGeometry(.303, 40), new T.MeshBasicMaterial({ map: clockFace }));
-  clock.position.set(0, 5.55, .116);
+  const clock = new T.Mesh(new T.CircleGeometry(.274, 40), new T.MeshBasicMaterial({ map: clockFace }));
+  clock.position.set(clockX, clockHeight, .116);
   scene.add(clock);
   const handInk = new T.MeshBasicMaterial({ color: "#313630", toneMapped: false });
 
@@ -662,18 +668,22 @@ window.createClassroomRoom = function createClassroomRoom(stage, canvas, board, 
   scene.add(sun, sun.target);
   const daylight = window.createClassroomDaylight?.(renderer, sun, windowBays);
 
-  function draw() {
-    const motion = ease(progress, .06, .94);
+  function placeCamera(at) {
+    const motion = ease(at, .06, .94);
     const aisleTurn = ease(motion, .27, .77);
-    const sit = ease(progress, .77, 1);
-    const steps = Math.sin(motion * 10 * Math.PI) * Math.sin(progress * Math.PI) * (1 - sit);
+    const sit = ease(at, .77, 1);
+    const steps = Math.sin(motion * 10 * Math.PI) * Math.sin(at * Math.PI) * (1 - sit);
     const wideRoom = ease(camera.aspect, 1.01, 1.48);
     const doorwayOffset = 5.13 * (1 - aisleTurn);
-    const x = doorwayOffset - 1.72 * wideRoom * aisleTurn;
+    const x = doorwayOffset + (seatShift - 1.72 * wideRoom) * aisleTurn;
     camera.position.set(x, 1.79 - .37 * sit + steps * .042, 19.55 - 11.69 * motion - .12 * sit);
-    target.set(doorwayOffset * (.92 - .33 * aisleTurn) - 2.13 * wideRoom * aisleTurn,
+    target.set(doorwayOffset * (.92 - .33 * aisleTurn) + (seatShift - 2.13 * wideRoom) * aisleTurn,
       2.42 + .27 * sit + steps * .035, 0);
     camera.lookAt(target);
+  }
+
+  function draw() {
+    placeCamera(progress);
     if (daylight) daylight.render(scene, camera);
     else renderer.render(scene, camera);
   }
@@ -681,9 +691,9 @@ window.createClassroomRoom = function createClassroomRoom(stage, canvas, board, 
   function alignBoard(width, height) {
     const point = new T.Vector3();
     const edgeX = boardWidth / 2 - .11;
-    const edgeY = (boardHeight / 2 - .10) * boardStretch;
+    const edgeY = boardHeight / 2 - .10;
     const project = (x, y) => {
-      point.set(x, 3.28 + y, .326).project(camera);
+      boardGroup.localToWorld(point.set(x, y, .096)).project(camera);
       return { x: (point.x + 1) * width / 2, y: (1 - point.y) * height / 2 };
     };
     const topLeft = project(-edgeX, edgeY);
@@ -746,10 +756,24 @@ window.createClassroomRoom = function createClassroomRoom(stage, canvas, board, 
     boardStretch = 1 + .28 * (1 - ease(camera.aspect, .54, 1.02));
     boardGroup.scale.y = boardStretch;
     const tallRoom = (boardStretch - 1) / .28;
-    clock.position.y = clockFrame.position.y = 5.55 + .21 * tallRoom;
+    clock.position.y = clockFrame.position.y = boardGroup.position.y + .95 * boardStretch;
     clock.scale.setScalar(1 - .18 * tallRoom);
     clockFrame.scale.copy(clock.scale);
-    studentDesk.position.x = -1.72 * ease(camera.aspect, 1.01, 1.48);
+
+    // Move the eye and desk together only where the clock needs more room in the frame.
+    seatShift = 0;
+    placeCamera(1);
+    camera.updateMatrixWorld();
+    const radius = clockRadius * clock.scale.x;
+    const edge = new T.Vector3(clockX + radius, clock.position.y - radius, clock.position.z);
+    const right = edge.clone().project(camera).x;
+    if (right > .95) {
+      camera.position.x += 1;
+      camera.updateMatrixWorld();
+      const shifted = edge.project(camera).x;
+      seatShift = (right - .95) / (right - shifted);
+    }
+    studentDesk.position.x = seatShift - 1.72 * ease(camera.aspect, 1.01, 1.48);
     renderer.setSize(width, height, false);
     daylight?.resize(width, height);
     renderer.shadowMap.needsUpdate = true;

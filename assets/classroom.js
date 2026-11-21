@@ -18,6 +18,7 @@
   let seated = false;
   let active = -1;
   let pending = null;
+  let eraseDirection = 1;
   let eraseTimer;
   let welcomeTimer;
   let browsed = false;
@@ -111,20 +112,21 @@
     updateDeskBook();
   }
 
-  function requestNotebook(index) {
-    if (pending !== null) {
-      pending = index;
-      return;
-    }
-    if (active === index) return;
+  function requestNotebook(index, direction = 1) {
+    if (pending === null && active === index) return;
+    const sameSweep = pending !== null && direction === eraseDirection;
     pending = index;
     if (motion.matches) {
       replaceWriting();
       return;
     }
+    if (sameSweep) return;
+    eraseDirection = direction;
+    writing.dataset.wipeDirection = direction > 0 ? "left" : "right";
     writing.classList.remove("is-writing");
     writing.classList.add("is-erasing");
-    eraseTimer = setTimeout(replaceWriting, 405);
+    clearTimeout(eraseTimer);
+    eraseTimer = setTimeout(replaceWriting, 520);
   }
 
   function turn(direction) {
@@ -133,14 +135,17 @@
     clearTimeout(welcomeTimer);
     const index = pending ?? active;
     if (notebooks.length === 1) {
-      requestNotebook(index < 0 ? 0 : -1);
+      requestNotebook(index < 0 ? 0 : -1, direction);
     } else if (index < 0) {
-      requestNotebook(direction > 0 ? 0 : notebooks.length - 1);
+      requestNotebook(direction > 0 ? 0 : notebooks.length - 1, direction);
     } else {
-      requestNotebook((index + direction + notebooks.length) % notebooks.length);
+      requestNotebook((index + direction + notebooks.length) % notebooks.length, direction);
     }
   }
 
+  stage.querySelector(".board-eraser").addEventListener("animationend", (event) => {
+    if (pending !== null && event.animationName === `sweep-to-${writing.dataset.wipeDirection}`) replaceWriting();
+  });
   previous.addEventListener("click", () => turn(-1));
   next.addEventListener("click", () => turn(1));
   skip.addEventListener("click", sitDown);

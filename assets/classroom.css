@@ -85,7 +85,7 @@ a:focus-visible, button:focus-visible { outline: 2px dashed currentColor; outlin
 .whiteboard {
   position: absolute;
   left: var(--board-left, 16%);
-  top: var(--board-top, 19%);
+  top: var(--board-top, 17.5%);
   width: var(--board-width, 68%);
   height: var(--board-height, 42%);
   z-index: 3;
@@ -269,8 +269,10 @@ body:not(.has-controls) .board-controls { display: none; }
   box-shadow: .18em .3em .35em #323d374d, inset 0 2px #f0ba7f;
   pointer-events: none;
 }
-.is-erasing .board-slide { animation: erase-writing 405ms ease-in both; }
-.is-erasing .board-eraser { display: block; animation: sweep-eraser 405ms ease-in-out both; }
+.is-erasing .board-slide { animation: erase-to-right 405ms ease-in-out both; }
+.is-erasing .board-eraser { display: block; animation: sweep-to-right 405ms ease-in-out both; }
+.is-erasing[data-wipe-direction="left"] .board-slide { animation-name: erase-to-left; }
+.is-erasing[data-wipe-direction="left"] .board-eraser { animation-name: sweep-to-left; }
 .is-writing .welcome-name { animation: write-marker 390ms linear both; }
 .is-writing .welcome-title { animation: write-marker 520ms 150ms linear both; }
 .is-writing .notebook { animation: write-marker 660ms linear both; }
@@ -280,18 +282,27 @@ body:not(.has-controls) .board-controls { display: none; }
   0% { clip-path: inset(-13% 100% -16% -5%); opacity: .45; }
   100% { clip-path: inset(-13% -5% -16% -5%); opacity: 1; }
 }
-@keyframes erase-writing {
-  0% { clip-path: inset(-15% -8% -15% -8%); }
+@keyframes erase-to-right {
+  0% { clip-path: inset(-15% -8% -15% -8%); opacity: 1; }
   94%, 100% { clip-path: inset(-15% -8% -15% 105%); }
 }
-@keyframes sweep-eraser {
+@keyframes erase-to-left {
+  0% { clip-path: inset(-15% -8% -15% -8%); opacity: 1; }
+  94%, 100% { clip-path: inset(-15% 105% -15% -8%); }
+}
+@keyframes sweep-to-right {
   0% { left: 6%; transform: translateY(-20%) rotate(-12deg); opacity: 0; }
   10%, 86% { opacity: 1; }
-  100% { left: 91%; transform: translateY(10%) rotate(12deg); opacity: 0; }
+  100% { left: 86%; transform: translateY(10%) rotate(12deg); opacity: 0; }
+}
+@keyframes sweep-to-left {
+  0% { left: 86%; transform: translateY(-20%) rotate(12deg); opacity: 0; }
+  10%, 86% { opacity: 1; }
+  100% { left: 6%; transform: translateY(10%) rotate(-12deg); opacity: 0; }
 }
 
 @media (max-aspect-ratio: 4 / 5) {
-  .whiteboard { --board-left: 6%; --board-width: 88%; --board-top: 25%; --board-height: 33%; }
+  .whiteboard { --board-left: 6%; --board-width: 88%; --board-top: 23.5%; --board-height: 33%; }
   .board-controls { padding-inline: .2%; }
 }
 
