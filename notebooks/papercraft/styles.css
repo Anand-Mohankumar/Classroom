@@ -37,7 +37,7 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 *, *::before, *::after, dialog::backdrop { cursor: var(--pen-cursor); }
-html { scroll-padding-top: calc(var(--header) + 1rem); }
+html { scroll-padding-top: calc(var(--header) + 1rem); scrollbar-gutter: stable; }
 body {
   margin: 0;
   color: var(--ink);
@@ -189,7 +189,8 @@ kbd { color: var(--muted); font: 700 .88rem/1 var(--writing); border: 1px solid 
 .opening-book, .opening-desk { display: none; }
 
 @media screen and (prefers-reduced-motion: no-preference) {
-  html.is-opening { --opening-duration: 2.65s; overflow-x: clip; }
+  html.is-opening { --opening-duration: 2.65s; overflow: hidden; }
+  .is-opening body { position: fixed; inset: 0; overflow: clip; }
   .is-opening .opening-desk {
     display: block;
     position: fixed;

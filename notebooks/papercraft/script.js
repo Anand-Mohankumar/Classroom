@@ -8,6 +8,26 @@ const contentsToggle = contentsMenu.querySelector("summary");
 const readingLine = document.querySelector(".reading-line");
 const backToTop = document.querySelector(".back-to-top");
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+const reload = performance.getEntriesByType("navigation")[0]?.type === "reload";
+const readingPositionKey = "classroom-notebook-reading-position";
+let savedScroll;
+
+try {
+  const previous = JSON.parse(sessionStorage.getItem(readingPositionKey));
+  if (reload && previous?.url === location.href) savedScroll = previous.top;
+} catch {
+  // The notebook also opens when browser storage is disabled.
+}
+
+// Keep the reading position in this tab while the cover replays at the top.
+window.addEventListener("pagehide", () => {
+  if (root.classList.contains("is-opening")) return;
+  try {
+    sessionStorage.setItem(readingPositionKey, JSON.stringify({ url: location.href, top: window.scrollY }));
+  } catch {
+    // A chapter fragment can still be restored without storage.
+  }
+});
 
 function updateTableHint(frame) {
   const hint = frame.previousElementSibling;
@@ -47,20 +67,27 @@ if (root.classList.contains("is-opening")) {
     for (const property of Object.keys(openingFrame)) book.style.removeProperty(property);
     clearTimeout(fallback);
     listeners.abort();
+    history.scrollRestoration = "auto";
+    if (!reload) return;
+    if (Number.isFinite(savedScroll)) {
+      window.scrollTo({ top: savedScroll, behavior: "instant" });
+    } else if (location.hash.length > 1) {
+      document.getElementById(location.hash.slice(1))?.scrollIntoView({ behavior: "instant" });
+    }
   }
 
   book.addEventListener("animationend", (event) => {
     if (event.target === book && event.animationName === "approach-book") finishOpening();
   }, options);
-  for (const type of ["pointerdown", "keydown", "wheel", "touchstart", "resize"]) {
+  for (const type of ["pointerdown", "keydown", "wheel", "touchstart"]) {
     window.addEventListener(type, finishOpening, options);
   }
-  reduceMotion.addEventListener("change", finishOpening, options);
-  window.addEventListener("scroll", () => {
-    if (window.scrollY > 0) finishOpening();
+  window.addEventListener("resize", () => {
+    if (root.clientWidth !== clientWidth) finishOpening();
   }, options);
+  reduceMotion.addEventListener("change", finishOpening, options);
   window.addEventListener("pageshow", (event) => {
-    if (event.persisted || window.scrollY > 0) finishOpening();
+    if (event.persisted) finishOpening();
   }, options);
   root.classList.add("is-opening-ready");
 }
