@@ -105,7 +105,6 @@ a:focus-visible, button:focus-visible { outline: 2px dashed currentColor; outlin
   box-shadow: 0 .42rem #393e30, 0 1.6rem 4rem #352b2359, inset 0 0 1.15rem #d1cdb577;
 }
 
-.classroom[data-view="walking"] .whiteboard { visibility: hidden; }
 .classroom[data-view="seated"] .whiteboard { animation: board-arrival 360ms ease-out both; }
 
 .board-content { position: relative; display: grid; place-items: center; min-height: 0; }

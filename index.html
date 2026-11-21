@@ -14,10 +14,10 @@
   <script src="assets/classroom.js" defer></script>
 </head>
 <body>
-  <main class="classroom" aria-label="CyberAmo's Classroom" data-view="seated">
+  <main class="classroom" aria-label="CyberAmo's Classroom" data-view="loading">
     <div class="room-backdrop" aria-hidden="true"></div>
     <canvas class="room" aria-hidden="true" hidden></canvas>
-    <section class="whiteboard" aria-label="Classroom whiteboard">
+    <section class="whiteboard" aria-label="Classroom whiteboard" hidden>
       <div class="board-content" aria-live="polite">
         <h1 class="welcome board-slide">
           <span class="welcome-name">CyberAmo's</span>
@@ -35,6 +35,14 @@
     </section>
     <a class="desk-notebook" target="_blank" rel="noopener" hidden><span class="desk-title"></span></a>
     <noscript>
+      <section class="whiteboard" aria-label="Classroom whiteboard">
+        <div class="board-content">
+          <h1 class="welcome board-slide">
+            <span class="welcome-name">CyberAmo's</span>
+            <span class="welcome-title">Classroom</span>
+          </h1>
+        </div>
+      </section>
       <a class="desk-notebook" href="Notebooks/AI%20Career%20Roadmap/index.html"
          target="_blank" rel="noopener"><span class="desk-title">AI Career Roadmap</span></a>
     </noscript>

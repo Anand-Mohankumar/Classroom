@@ -40,17 +40,16 @@
     if (seated) return;
     room?.sit();
     seated = true;
-    stage.dataset.view = "seated";
     const returnFocus = document.activeElement === skip;
     skip.hidden = true;
     deskLink.hidden = false;
     updateDeskBook();
     scheduleHand();
     writing.classList.add("is-writing");
-    if (notebooks.length) {
-      document.body.classList.add("has-controls");
-      if (returnFocus) next.focus();
-    }
+    if (notebooks.length) document.body.classList.add("has-controls");
+    stage.dataset.view = "seated";
+    board.hidden = false;
+    if (returnFocus && notebooks.length) next.focus();
     scheduleWelcome();
   }
 
