@@ -124,6 +124,53 @@ document.addEventListener("pointerdown", (event) => {
   if (contentsMenu.open && !contentsMenu.contains(event.target)) contentsMenu.open = false;
 });
 
+for (const link of document.querySelectorAll(".bookmarks a[data-chapter-link]")) {
+  const id = link.dataset.chapterLink;
+  const description = document.getElementById(id)?.querySelector(".chapter-heading p, .cover-copy p");
+  if (!description) continue;
+  const bookmark = document.createElement("span");
+  bookmark.className = "bookmark";
+  link.before(bookmark);
+  bookmark.append(link);
+  bookmark.style.setProperty("--tab", getComputedStyle(link).getPropertyValue("--tab"));
+  description.id ||= id + "-description";
+  link.setAttribute("aria-describedby", description.id);
+
+  const card = document.createElement("span");
+  card.className = "bookmark-preview";
+  const label = document.createElement("strong");
+  label.textContent = link.textContent;
+  const summary = document.createElement("span");
+  summary.textContent = description.textContent;
+  const more = document.createElement("a");
+  more.href = link.hash;
+  more.textContent = "Click here to read more";
+  more.setAttribute("aria-label", "Click here to read more about " + link.textContent);
+  card.append(label, summary, more);
+  bookmark.append(card);
+
+  function positionCard() {
+    const bounds = bookmark.getBoundingClientRect();
+    const center = (bounds.left + bounds.right) / 2;
+    const halfWidth = card.offsetWidth / 2;
+    const fittedCenter = Math.max(halfWidth + 12, Math.min(document.documentElement.clientWidth - halfWidth - 12, center));
+    card.style.setProperty("--preview-shift", (fittedCenter - center) + "px");
+  }
+
+  bookmark.addEventListener("pointerenter", positionCard);
+  bookmark.addEventListener("focusin", positionCard);
+  bookmark.addEventListener("pointerleave", () => { delete bookmark.dataset.dismissed; });
+  bookmark.addEventListener("focusout", (event) => {
+    if (!bookmark.contains(event.relatedTarget)) delete bookmark.dataset.dismissed;
+  });
+  bookmark.addEventListener("click", () => { bookmark.dataset.dismissed = ""; });
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || !bookmark.matches(":hover, :focus-within")) return;
+    if (document.activeElement === more) link.focus({ preventScroll: true });
+    bookmark.dataset.dismissed = "";
+  });
+}
+
 const map = document.querySelector(".map-art");
 const mapImage = map.querySelector("img");
 const lens = map.querySelector(".map-lens");

@@ -500,7 +500,7 @@ html.map-travel::view-transition-new(root) { animation: reveal-chapter .56s cubi
   margin-inline: clamp(1rem, 4.7vw, 4rem);
   border-block: 1px solid #aa8c5c59;
 }
-.bookmarks a {
+.bookmarks > a, .bookmark > a {
   --tab: #f5e7c8;
   --angle: -1.4deg;
   background: var(--tab);
@@ -516,7 +516,7 @@ html.map-travel::view-transition-new(root) { animation: reveal-chapter .56s cubi
   rotate: var(--angle);
   transition: translate .16s ease, rotate .16s ease, box-shadow .16s ease;
 }
-.bookmarks a:nth-child(even) { --angle: 1.35deg; }
+.bookmarks > a:nth-child(even), .bookmark:nth-child(even) > a { --angle: 1.35deg; }
 .bookmarks a[data-chapter-link="tutorial-island"] { --tab: #dce9d5; }
 .bookmarks a[data-chapter-link="strategist"] { --tab: #ebdfb4; }
 .bookmarks a[data-chapter-link="rogue"] { --tab: #f2d6b8; }
@@ -524,7 +524,7 @@ html.map-travel::view-transition-new(root) { animation: reveal-chapter .56s cubi
 .bookmarks a[data-chapter-link="crafter"] { --tab: #f4dccc; }
 .bookmarks a[data-chapter-link="sage"] { --tab: #dce6ef; }
 .bookmarks a[data-chapter-link="machinist"] { --tab: #e3e8bf; }
-.bookmarks a:hover, .bookmarks a[aria-current] {
+.bookmarks > a:hover, .bookmark > a:hover, .bookmarks a[aria-current] {
   translate: 0 -2px;
   rotate: 0deg;
   box-shadow: 1px 5px 5px #82583540;
@@ -535,6 +535,59 @@ html.map-travel::view-transition-new(root) { animation: reveal-chapter .56s cubi
   text-underline-offset: .24em;
   text-decoration-thickness: 1.5px;
 }
+.bookmark {
+  position: relative;
+  perspective: 720px;
+}
+.bookmark:has(:focus-visible) { z-index: 4; }
+.bookmark-preview {
+  position: absolute;
+  top: calc(100% - 4px);
+  left: 50%;
+  display: grid;
+  gap: .42rem;
+  width: min(21rem, calc(100vw - 1.5rem));
+  padding: .8rem 1rem .9rem;
+  border: 1px solid #ad9174;
+  border-radius: .2rem .3rem .24rem .18rem;
+  background: linear-gradient(#fffaf076, #fffaf076), var(--tab, #f5e7c8);
+  box-shadow: 2px 4px #bfa481, 2px 9px 20px #593b253a;
+  color: var(--ink);
+  font-size: 1rem;
+  line-height: 1.48;
+  text-align: left;
+  visibility: hidden;
+  opacity: 0;
+  transform-origin: center top;
+  transform: translateX(calc(-50% + var(--preview-shift, 0px))) translateY(-.8rem) scale(.64) rotateX(-88deg);
+  transition: transform .28s cubic-bezier(.2, .8, .25, 1), opacity .18s, visibility 0s .28s;
+  pointer-events: none;
+}
+.bookmark-preview strong { font: 700 1.28rem/1.16 var(--writing); }
+.bookmark-preview a {
+  width: fit-content;
+  color: #204e80;
+  text-decoration: underline;
+  text-underline-offset: .18em;
+}
+.bookmark:not([data-dismissed]):has(:focus-visible) .bookmark-preview {
+  visibility: visible;
+  opacity: 1;
+  transform: translateX(calc(-50% + var(--preview-shift, 0px)));
+  transition-delay: 0s;
+  pointer-events: auto;
+}
+@media (hover: hover) {
+  .bookmark:hover { z-index: 5; }
+  .bookmark:not([data-dismissed]):hover .bookmark-preview {
+    visibility: visible;
+    opacity: 1;
+    transform: translateX(calc(-50% + var(--preview-shift, 0px)));
+    transition-delay: 0s;
+    pointer-events: auto;
+  }
+}
+
 .chapter-heading {
   position: relative;
   padding: clamp(2rem, 5.6vw, 4.8rem) clamp(1.25rem, 7.2vw, 7.25rem) 1.4rem;
@@ -718,7 +771,7 @@ mark { background: #f1d988; color: inherit; }
   .cover h1 { font-size: clamp(2.65rem, 10.5vw, 4.2rem); margin-bottom: .9rem; }
   .cover p { max-width: 42ch; margin-bottom: .85rem; }
   .bookmarks { justify-content: start; margin-inline: 1rem; padding-inline: 0; gap: .42rem; }
-  .bookmarks a { font-size: 1rem; padding-inline: .65rem; }
+  .bookmarks > a, .bookmark > a { font-size: 1rem; padding-inline: .65rem; }
   .header-actions { gap: .25rem; }
   .contents-menu summary, .find-button { font-size: 1rem; padding-inline: .53rem; }
   kbd { display: none; }
