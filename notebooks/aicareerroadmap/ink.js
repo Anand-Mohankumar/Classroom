@@ -18,6 +18,11 @@
   let strokes = [];
   let frame = 0;
   let suppressDragClick = false;
+  const pen = document.querySelector(".pen-button");
+  pen.hidden = false;
+  pen.addEventListener("click", () => {
+    pen.setAttribute("aria-pressed", String(root.classList.toggle("pen-enabled")));
+  });
 
   function inkPoint(event, layer) {
     return {
@@ -118,7 +123,8 @@
   window.addEventListener("pointerdown", (event) => {
     if (gesture) return;
     suppressDragClick = false;
-    if (event.button !== 0 || !event.isPrimary || event.pointerType === "touch") return;
+    if (!root.classList.contains("pen-enabled") || event.button !== 0 || !event.isPrimary ||
+        event.pointerType === "touch" || event.target.closest("input, textarea, [contenteditable]")) return;
     const layer = dialog.open ? dialogLayer : pageLayer;
     gesture = {
       pointerId: event.pointerId,

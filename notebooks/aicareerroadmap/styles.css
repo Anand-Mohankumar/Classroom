@@ -36,7 +36,7 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; }
-*, *::before, *::after, dialog::backdrop { cursor: var(--pen-cursor); }
+.pen-enabled, .pen-enabled *, .pen-enabled *::before, .pen-enabled *::after, .pen-enabled dialog::backdrop { cursor: var(--pen-cursor); }
 html { scroll-behavior: smooth; scroll-padding-top: calc(var(--header) + 1rem); }
 body {
   margin: 0;
@@ -125,7 +125,7 @@ p { margin-block: 0 1.15rem; }
 .book-icon::after { right: 0; transform: skewY(-14deg); border-radius: 8% 16% 12% 2%; box-shadow: .08rem .13rem #7a69504a; }
 .header-actions { display: flex; align-items: center; gap: clamp(.45rem, 1.5vw, 1rem); }
 .contents-menu { position: relative; }
-.contents-menu summary, .find-button {
+.contents-menu summary, .find-button, .pen-button {
   display: flex;
   align-items: center;
   gap: .52rem;
@@ -168,6 +168,10 @@ p { margin-block: 0 1.15rem; }
   rotate: 1.25deg;
 }
 .find-button:hover { background: #e6efdd; translate: 0 -1px; rotate: 0deg; }
+.pen-button { background: #f4dfd5; rotate: -1deg; }
+.pen-button:hover { background: #f9e8df; translate: 0 -1px; rotate: 0deg; }
+.pen-button[aria-pressed="true"] { background: #7e3035; color: #fff5e9; border-color: #67232b; rotate: 0deg; }
+.pen-button:active { translate: 0 1px; box-shadow: none; }
 .search-icon { width: .8rem; height: .84rem; flex: none; position: relative; border: 1.6px solid currentColor; border-radius: 54% 45% 52% 47%; margin-right: .12rem; rotate: -5deg; }
 .search-icon::after { position: absolute; width: .35rem; height: 1.7px; border-radius: 80% 55%; background: currentColor; top: .6rem; left: .52rem; rotate: 47deg; content: ""; }
 kbd { color: var(--muted); font: 700 .88rem/1 var(--writing); border: 1px solid #a4ae94; border-radius: 15% 9% 14% 8%; padding: .18rem .32rem .08rem; }
@@ -391,6 +395,7 @@ kbd { color: var(--muted); font: 700 .88rem/1 var(--writing); border: 1px solid 
   height: 31%;
   border-radius: 30% 29% 22% 20%;
 }
+.map-link:active { box-shadow: inset 0 0 0 2px #265465aa; background: #26546526; }
 .is-examining .map-link { cursor: none; }
 .map-link.strategist, .map-link.alchemist, .map-link.sage { left: 1%; }
 .map-link.rogue, .map-link.crafter, .map-link.machinist { right: 1%; }
@@ -484,6 +489,7 @@ kbd { color: var(--muted); font: 700 .88rem/1 var(--writing); border: 1px solid 
 .is-inking .map-link { cursor: var(--pen-cursor); }
 .is-inking .map-lens, .is-inking .map-lens-hint { opacity: 0; visibility: hidden; }
 
+html.map-travel::view-transition { pointer-events: none; }
 html.map-travel::view-transition-old(root) { animation: none; }
 html.map-travel::view-transition-new(root) { animation: reveal-chapter .56s cubic-bezier(.2, .72, .27, 1) both; }
 @keyframes reveal-chapter {
@@ -537,17 +543,59 @@ html.map-travel::view-transition-new(root) { animation: reveal-chapter .56s cubi
 }
 .bookmark {
   position: relative;
+  display: inline-flex;
+  align-items: stretch;
   perspective: 720px;
 }
-.bookmark:has(:focus-visible) { z-index: 4; }
+.bookmark > a {
+  border-radius: 3% 0 0 3% / 6% 0 0 4%;
+  rotate: none;
+}
+.bookmark > a:hover, .bookmark > a[aria-current] { translate: none; }
+.bookmark-toggle {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0;
+  background: var(--tab, #f5e7c8);
+  border: 1px solid #ad91747a;
+  border-left: 0;
+  border-radius: 0 .2rem .28rem 0;
+  box-shadow: 1px 3px #82583530, inset 0 1px #fff7e6bf;
+}
+.bookmark-toggle::before {
+  content: "";
+  width: .46rem;
+  height: .46rem;
+  border: solid currentColor;
+  border-width: 0 1.5px 1.5px 0;
+  transform: translateY(-2px) rotate(45deg);
+}
+.bookmark-toggle:is(:hover, [aria-expanded="true"]) { background: color-mix(in srgb, var(--tab) 68%, #fffaf0); }
+.bookmark-toggle[aria-expanded="true"]::before { transform: translateY(2px) rotate(225deg); }
+.bookmark-toggle:active { box-shadow: inset 1px 2px #82583530; }
+.bookmark:focus-within { z-index: 4; }
+.bookmark.is-previewing { z-index: 5; }
 .bookmark-preview {
+  --flip-y: -.8rem;
+  --flip-angle: -88deg;
   position: absolute;
   top: calc(100% - 4px);
   left: 50%;
+  width: min(21rem, calc(100vw - 1.5rem));
+  visibility: hidden;
+  transform: translateX(calc(-50% + var(--preview-shift, 0px)));
+  transition: visibility 0s .28s;
+  pointer-events: none;
+}
+.bookmark-preview-paper {
   display: grid;
   gap: .42rem;
-  width: min(21rem, calc(100vw - 1.5rem));
   padding: .8rem 1rem .9rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   border: 1px solid #ad9174;
   border-radius: .2rem .3rem .24rem .18rem;
   background: linear-gradient(#fffaf076, #fffaf076), var(--tab, #f5e7c8);
@@ -556,12 +604,10 @@ html.map-travel::view-transition-new(root) { animation: reveal-chapter .56s cubi
   font-size: 1rem;
   line-height: 1.48;
   text-align: left;
-  visibility: hidden;
   opacity: 0;
   transform-origin: center top;
-  transform: translateX(calc(-50% + var(--preview-shift, 0px))) translateY(-.8rem) scale(.64) rotateX(-88deg);
-  transition: transform .28s cubic-bezier(.2, .8, .25, 1), opacity .18s, visibility 0s .28s;
-  pointer-events: none;
+  transform: perspective(720px) translateY(var(--flip-y)) scale(.64) rotateX(var(--flip-angle));
+  transition: transform .28s cubic-bezier(.2, .8, .25, 1), opacity .18s;
 }
 .bookmark-preview strong { font: 700 1.28rem/1.16 var(--writing); }
 .bookmark-preview a {
@@ -570,23 +616,21 @@ html.map-travel::view-transition-new(root) { animation: reveal-chapter .56s cubi
   text-decoration: underline;
   text-underline-offset: .18em;
 }
-.bookmark:not([data-dismissed]):has(:focus-visible) .bookmark-preview {
+.bookmark.preview-above .bookmark-preview {
+  --flip-y: .8rem;
+  --flip-angle: 88deg;
+  top: auto;
+  bottom: calc(100% - 4px);
+}
+.bookmark.preview-above .bookmark-preview-paper {
+  transform-origin: center bottom;
+}
+.bookmark.is-previewing .bookmark-preview {
   visibility: visible;
-  opacity: 1;
-  transform: translateX(calc(-50% + var(--preview-shift, 0px)));
   transition-delay: 0s;
   pointer-events: auto;
 }
-@media (hover: hover) {
-  .bookmark:hover { z-index: 5; }
-  .bookmark:not([data-dismissed]):hover .bookmark-preview {
-    visibility: visible;
-    opacity: 1;
-    transform: translateX(calc(-50% + var(--preview-shift, 0px)));
-    transition-delay: 0s;
-    pointer-events: auto;
-  }
-}
+.bookmark.is-previewing .bookmark-preview-paper { opacity: 1; transform: none; }
 
 .chapter-heading {
   position: relative;
@@ -773,15 +817,15 @@ mark { background: #f1d988; color: inherit; }
   .bookmarks { justify-content: start; margin-inline: 1rem; padding-inline: 0; gap: .42rem; }
   .bookmarks > a, .bookmark > a { font-size: 1rem; padding-inline: .65rem; }
   .header-actions { gap: .25rem; }
-  .contents-menu summary, .find-button { font-size: 1rem; padding-inline: .53rem; }
+  .contents-menu summary, .find-button, .pen-button { font-size: 1rem; padding-inline: .53rem; }
   kbd { display: none; }
   .chapter-body p, .chapter-body li { font-size: 1.0625rem; }
 }
 @media (max-width: 23rem) {
   .header-inner { padding-inline: .625rem; }
   .wordmark { gap: .4rem; font-size: 1.2rem; }
-  .book-icon { width: 1.65rem; height: 1.46rem; }
-  .contents-menu summary, .find-button { gap: .35rem; padding-inline: .36rem; font-size: .94rem; }
+  .wordmark .book-icon { display: none; }
+  .contents-menu summary, .find-button, .pen-button { gap: .35rem; padding-inline: .36rem; font-size: .94rem; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }

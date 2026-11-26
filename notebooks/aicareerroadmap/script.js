@@ -124,7 +124,45 @@ document.addEventListener("pointerdown", (event) => {
   if (contentsMenu.open && !contentsMenu.contains(event.target)) contentsMenu.open = false;
 });
 
-for (const link of document.querySelectorAll(".bookmarks a[data-chapter-link]")) {
+const bookmarks = document.querySelector(".bookmarks");
+const siteHeader = document.querySelector(".site-header");
+let openBookmark;
+let previewFrame;
+
+function closeBookmark(restoreFocus = false) {
+  if (!openBookmark) return;
+  const { bookmark, toggle, card } = openBookmark;
+  openBookmark = undefined;
+  bookmark.classList.remove("is-previewing");
+  toggle.setAttribute("aria-expanded", "false");
+  card.inert = true;
+  if (restoreFocus) toggle.focus({ preventScroll: true });
+}
+
+function positionBookmark() {
+  if (!openBookmark) return;
+  const { bookmark, card, surface } = openBookmark;
+  const bounds = bookmark.getBoundingClientRect();
+  const center = (bounds.left + bounds.right) / 2;
+  const half = card.offsetWidth / 2;
+  const fitted = Math.max(half + 12, Math.min(root.clientWidth - half - 12, center));
+  const above = bounds.top - siteHeader.getBoundingClientRect().bottom - 12;
+  const below = root.clientHeight - bounds.bottom - 12;
+  const flip = below < surface.scrollHeight + 2 && above > below;
+  bookmark.classList.toggle("preview-above", flip);
+  card.style.setProperty("--preview-shift", (fitted - center) + "px");
+  surface.style.maxHeight = Math.max(0, flip ? above : below) + "px";
+}
+
+function queueBookmarkPosition() {
+  if (!openBookmark || previewFrame) return;
+  previewFrame = requestAnimationFrame(() => {
+    previewFrame = 0;
+    positionBookmark();
+  });
+}
+
+for (const link of bookmarks.querySelectorAll("a[data-chapter-link]")) {
   const id = link.dataset.chapterLink;
   const description = document.getElementById(id)?.querySelector(".chapter-heading p, .cover-copy p");
   if (!description) continue;
@@ -133,11 +171,19 @@ for (const link of document.querySelectorAll(".bookmarks a[data-chapter-link]"))
   link.before(bookmark);
   bookmark.append(link);
   bookmark.style.setProperty("--tab", getComputedStyle(link).getPropertyValue("--tab"));
-  description.id ||= id + "-description";
-  link.setAttribute("aria-describedby", description.id);
 
+  const toggle = document.createElement("button");
+  toggle.type = "button";
+  toggle.className = "bookmark-toggle";
+  toggle.setAttribute("aria-label", link.textContent + " description");
+  toggle.setAttribute("aria-expanded", "false");
+  toggle.setAttribute("aria-controls", id + "-bookmark-preview");
   const card = document.createElement("span");
+  card.id = id + "-bookmark-preview";
   card.className = "bookmark-preview";
+  card.inert = true;
+  const surface = document.createElement("span");
+  surface.className = "bookmark-preview-paper";
   const label = document.createElement("strong");
   label.textContent = link.textContent;
   const summary = document.createElement("span");
@@ -146,30 +192,59 @@ for (const link of document.querySelectorAll(".bookmarks a[data-chapter-link]"))
   more.href = link.hash;
   more.textContent = "Click here to read more";
   more.setAttribute("aria-label", "Click here to read more about " + link.textContent);
-  card.append(label, summary, more);
-  bookmark.append(card);
+  surface.append(label, summary, more);
+  card.append(surface);
+  bookmark.append(toggle, card);
 
-  function positionCard() {
-    const bounds = bookmark.getBoundingClientRect();
-    const center = (bounds.left + bounds.right) / 2;
-    const halfWidth = card.offsetWidth / 2;
-    const fittedCenter = Math.max(halfWidth + 12, Math.min(document.documentElement.clientWidth - halfWidth - 12, center));
-    card.style.setProperty("--preview-shift", (fittedCenter - center) + "px");
+  function openPreview(pinned) {
+    closeBookmark();
+    openBookmark = { bookmark, toggle, card, surface, pinned };
+    positionBookmark();
+    bookmark.classList.add("is-previewing");
+    toggle.setAttribute("aria-expanded", "true");
+    card.inert = false;
   }
 
-  bookmark.addEventListener("pointerenter", positionCard);
-  bookmark.addEventListener("focusin", positionCard);
-  bookmark.addEventListener("pointerleave", () => { delete bookmark.dataset.dismissed; });
+  bookmark.addEventListener("pointerenter", (event) => {
+    if (event.pointerType === "mouse" && !openBookmark?.pinned &&
+        !openBookmark?.card.contains(document.activeElement)) openPreview(false);
+  });
+  link.addEventListener("focus", () => {
+    if (link.matches(":focus-visible") && openBookmark?.bookmark !== bookmark) openPreview(false);
+  });
+  bookmark.addEventListener("pointerleave", () => {
+    if (openBookmark?.bookmark === bookmark && !openBookmark.pinned && !card.contains(document.activeElement)) {
+      closeBookmark();
+    }
+  });
   bookmark.addEventListener("focusout", (event) => {
-    if (!bookmark.contains(event.relatedTarget)) delete bookmark.dataset.dismissed;
+    if (openBookmark?.bookmark === bookmark && !bookmark.contains(event.relatedTarget)) closeBookmark();
   });
-  bookmark.addEventListener("click", () => { bookmark.dataset.dismissed = ""; });
-  document.addEventListener("keydown", (event) => {
-    if (event.key !== "Escape" || !bookmark.matches(":hover, :focus-within")) return;
-    if (document.activeElement === more) link.focus({ preventScroll: true });
-    bookmark.dataset.dismissed = "";
+  toggle.addEventListener("click", () => {
+    if (openBookmark?.bookmark === bookmark && openBookmark.pinned) closeBookmark();
+    else openPreview(true);
   });
+  for (const destination of [link, more]) {
+    destination.addEventListener("click", (event) => {
+      if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
+      event.preventDefault();
+      const chapter = document.getElementById(id);
+      goToChapter(destination, chapter, reduceMotion.matches ? "instant" : "smooth");
+      if (openBookmark?.bookmark === bookmark) closeBookmark();
+    });
+  }
 }
+
+document.addEventListener("pointerdown", (event) => {
+  if (openBookmark && !openBookmark.bookmark.contains(event.target)) closeBookmark();
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape" || !openBookmark) return;
+  const restoreFocus = openBookmark.bookmark.contains(document.activeElement);
+  closeBookmark(restoreFocus);
+});
+window.addEventListener("scroll", queueBookmarkPosition, { passive: true });
+window.addEventListener("resize", queueBookmarkPosition);
 
 const map = document.querySelector(".map-art");
 const mapImage = map.querySelector("img");
@@ -232,43 +307,53 @@ map.addEventListener("focusin", (event) => {
 map.addEventListener("focusout", hideLens);
 
 function goToChapter(link, chapter, behavior) {
-  history.pushState(null, "", link.hash);
+  if (location.hash !== link.hash) history.pushState(null, "", link.hash);
   const heading = chapter.querySelector("h2");
   heading.tabIndex = -1;
   heading.focus({ preventScroll: true });
   chapter.scrollIntoView({ behavior });
 }
 
-map.addEventListener("click", async (event) => {
+let mapTravel;
+
+for (const type of ["wheel", "touchmove"]) {
+  window.addEventListener(type, () => mapTravel?.skipTransition(), { passive: true });
+}
+window.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") mapTravel?.skipTransition();
+});
+
+map.addEventListener("click", (event) => {
   const link = event.target.closest(".map-link");
   if (!link || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey || reduceMotion.matches) return;
   const chapter = document.getElementById(link.hash.slice(1));
   if (!chapter) return;
 
   event.preventDefault();
-  if (map.classList.contains("is-entering")) return;
+  if (typeof document.startViewTransition !== "function") {
+    goToChapter(link, chapter, "smooth");
+    hideLens();
+    return;
+  }
 
   const origin = event.detail ? showLens(event.clientX, event.clientY) : centerLens(link);
-  await new Promise((resolve) => requestAnimationFrame(resolve));
+  mapTravel?.skipTransition();
+  root.style.setProperty("--reveal-x", origin.x + "px");
+  root.style.setProperty("--reveal-y", origin.y + "px");
+  root.classList.add("map-travel");
   map.classList.add("is-entering");
-  await new Promise((resolve) => setTimeout(resolve, 290));
 
-  try {
-    if (typeof document.startViewTransition !== "function") {
-      goToChapter(link, chapter, "smooth");
-      return;
-    }
-    root.style.setProperty("--reveal-x", origin.x + "px");
-    root.style.setProperty("--reveal-y", origin.y + "px");
-    root.classList.add("map-travel");
-    const travel = document.startViewTransition(() => goToChapter(link, chapter, "instant"));
-    await travel.finished;
-  } catch {
-    if (location.hash !== link.hash) goToChapter(link, chapter, "smooth");
-  } finally {
+  const travel = document.startViewTransition(() => {
+    if (mapTravel === travel) goToChapter(link, chapter, "instant");
+  });
+  mapTravel = travel;
+  const finish = () => {
+    if (mapTravel !== travel) return;
+    mapTravel = undefined;
     root.classList.remove("map-travel");
     map.classList.remove("is-entering", "is-examining");
-  }
+  };
+  travel.finished.then(finish, finish);
 });
 
 const searchDialog = document.querySelector(".search-dialog");

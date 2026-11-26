@@ -8,14 +8,16 @@
   <title>AI Career Roadmap</title>
   <link rel="canonical" href="https://classroom.cyberamo.work/notebooks/aicareerroadmap/">
   <link rel="icon" href="assets/ai-career-roadmap-icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=3">
+  <link rel="stylesheet" href="styles.css?v=4">
   <script>
     if (/^https?:$/.test(location.protocol) && location.pathname.endsWith("/index.html")) {
       history.replaceState(history.state, "", "./" + location.search + location.hash);
     }
 
-    if (!matchMedia("(prefers-reduced-motion: reduce)").matches &&
-        performance.getEntriesByType("navigation")[0]?.type !== "back_forward") {
+    const navigationType = performance.getEntriesByType("navigation")[0]?.type;
+    const chapterLink = location.hash && location.hash !== "#top";
+    if ((navigationType === "reload" || !chapterLink) &&
+        !matchMedia("(prefers-reduced-motion: reduce)").matches && navigationType !== "back_forward") {
       document.documentElement.classList.add("is-opening");
       window.addEventListener("load", () => {
         if (!document.documentElement.classList.contains("is-opening-ready")) {
@@ -24,8 +26,8 @@
       }, { once: true });
     }
   </script>
-  <script src="script.js?v=3" defer></script>
-  <script src="ink.js" defer></script>
+  <script src="script.js?v=4" defer></script>
+  <script src="ink.js?v=2" defer></script>
 </head>
 <body id="top">
   <div class="opening-desk" aria-hidden="true"></div>
@@ -45,6 +47,7 @@
 <a href="#machinist" data-chapter-link="machinist">Machinist</a></nav>
         </details>
         <button class="find-button" type="button" data-find hidden><span class="search-icon" aria-hidden="true"></span> Find <kbd>/</kbd></button>
+        <button class="pen-button" type="button" aria-label="Drawing pen" aria-pressed="false" hidden>Pen</button>
       </div>
     </div>
     <div class="reading-line" aria-hidden="true"></div>
