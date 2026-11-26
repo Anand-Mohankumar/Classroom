@@ -285,7 +285,11 @@
     if (wasDragging && !eraser.hidden) sweepEraser(eraserPosition > 0 ? -1 : 1);
   }
   stage.addEventListener("pointercancel", cancelSwipe);
-  stage.addEventListener("lostpointercapture", cancelSwipe);
+  stage.addEventListener("lostpointercapture", event => {
+    // Touch starts with implicit capture on the child. Moving capture to
+    // the stage releases the child without ending the swipe.
+    if (event.target === stage) cancelSwipe(event);
+  });
   stage.addEventListener("click", event => {
     const touchClick = event.pointerType === "touch" || (!event.pointerType && event.isTrusted && event.detail > 0);
     if (suppressTouchClick && touchClick) {
