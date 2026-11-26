@@ -110,9 +110,21 @@ a:focus-visible, button:focus-visible { outline: 2px dashed currentColor; outlin
   transform: var(--board-perspective, none);
 }
 
-.classroom[data-view="seated"] .whiteboard { animation: board-arrival 360ms ease-out both; }
-
+.whiteboard:has(> .classroom-title) { grid-template-rows: auto minmax(0, 1fr) auto; }
+.classroom-title {
+  margin: 0;
+  font: 700 clamp(1rem, 4cqw, 1.65rem)/1 var(--notes);
+}
 .board-content { position: relative; display: grid; place-items: center; min-height: 0; }
+.has-room .desk-title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .board-slide {
   grid-area: 1 / 1;
   margin: 0;
@@ -162,6 +174,8 @@ a:focus-visible, button:focus-visible { outline: 2px dashed currentColor; outlin
 
 .board-tip { margin: 0 auto; max-width: 40ch; }
 .board-controls button {
+  min-width: 3.25rem;
+  min-height: 3.25rem;
   padding: .04em .26em;
   border: 1px solid transparent;
   border-radius: 45%;
@@ -171,15 +185,17 @@ a:focus-visible, button:focus-visible { outline: 2px dashed currentColor; outlin
   cursor: var(--hand-cursor);
 }
 .board-controls button:is(:hover, :focus-visible) { border-color: #77564168; color: var(--marker-accent); }
+.board-controls button:active { border-color: currentColor; background: #994c3226; }
 .board-controls button:first-child { rotate: -7deg; }
 .board-controls button:last-child { rotate: 6deg; }
 body:not(.has-controls) .board-controls { display: none; }
 
-.skip-entrance {
+.entrance-control {
   position: absolute;
   right: max(.9rem, env(safe-area-inset-right));
   bottom: max(.9rem, env(safe-area-inset-bottom));
   z-index: 4;
+  min-height: 2.75rem;
   padding: .32em .72em;
   border: 1px solid #bfb498ad;
   border-radius: .28rem;
@@ -188,7 +204,8 @@ body:not(.has-controls) .board-controls { display: none; }
   font: 700 1.32rem/1 var(--notes);
   cursor: var(--hand-cursor);
 }
-.skip-entrance:hover { background: #24332e; }
+.entrance-control:is(:hover, :focus-visible) { background: #24332e; }
+.entrance-control:active { background: #17241f; }
 
 .desk-notebook {
   position: absolute;
@@ -205,17 +222,25 @@ body:not(.has-controls) .board-controls { display: none; }
   clip-path: var(--book-shape);
 }
 
-.has-room .desk-title {
+.has-room .desk-notebook[href]:hover {
+  background: #ffe8ae2c;
+}
+.has-room .desk-notebook[href]:active { background: #ffe8ae59; }
+
+.has-room .desk-notebook:focus-visible::after {
   position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
+  inset: 0;
+  background: #fff3b2;
+  clip-path: var(--book-focus-ring);
+  pointer-events: none;
+  content: "";
 }
 
-.has-room .desk-notebook[href]:is(:hover, :focus-visible) {
-  background: #ffe8ae2c;
+@media (forced-colors: active) {
+  .has-room .desk-notebook:focus-visible::after {
+    forced-color-adjust: none;
+    background: Highlight;
+  }
 }
 
 .classroom:not(.has-room) .desk-notebook {
@@ -257,48 +282,16 @@ body:not(.has-controls) .board-controls { display: none; }
 }
 
 .board-eraser {
-  display: none;
   position: absolute;
   z-index: 1;
   top: 44%;
-  left: 6%;
+  left: 45%;
   width: 10%;
   height: 19%;
   border-radius: .25em .3em .35em .25em;
   background: linear-gradient(180deg, #a76e43 0 44%, #885b3a 45% 59%, #47504a 60%);
   box-shadow: .18em .3em .35em #323d374d, inset 0 2px #f0ba7f;
   pointer-events: none;
-}
-.is-erasing .board-slide { animation: erase-to-right 405ms ease-in-out both; }
-.is-erasing .board-eraser { display: block; animation: sweep-to-right 405ms ease-in-out both; }
-.is-erasing[data-wipe-direction="left"] .board-slide { animation-name: erase-to-left; }
-.is-erasing[data-wipe-direction="left"] .board-eraser { animation-name: sweep-to-left; }
-.is-writing .welcome-name { animation: write-marker 390ms linear both; }
-.is-writing .welcome-title { animation: write-marker 520ms 150ms linear both; }
-.is-writing .notebook { animation: write-marker 660ms linear both; }
-
-@keyframes board-arrival { from { opacity: 0; } to { opacity: 1; } }
-@keyframes write-marker {
-  0% { clip-path: inset(-13% 100% -16% -5%); opacity: .45; }
-  100% { clip-path: inset(-13% -5% -16% -5%); opacity: 1; }
-}
-@keyframes erase-to-right {
-  0% { clip-path: inset(-15% -8% -15% -8%); opacity: 1; }
-  94%, 100% { clip-path: inset(-15% -8% -15% 105%); }
-}
-@keyframes erase-to-left {
-  0% { clip-path: inset(-15% -8% -15% -8%); opacity: 1; }
-  94%, 100% { clip-path: inset(-15% 105% -15% -8%); }
-}
-@keyframes sweep-to-right {
-  0% { left: 6%; transform: translateY(-20%) rotate(-12deg); opacity: 0; }
-  10%, 86% { opacity: 1; }
-  100% { left: 86%; transform: translateY(10%) rotate(12deg); opacity: 0; }
-}
-@keyframes sweep-to-left {
-  0% { left: 86%; transform: translateY(-20%) rotate(12deg); opacity: 0; }
-  10%, 86% { opacity: 1; }
-  100% { left: 6%; transform: translateY(10%) rotate(-12deg); opacity: 0; }
 }
 
 @media (max-aspect-ratio: 4 / 5) {
@@ -307,5 +300,5 @@ body:not(.has-controls) .board-controls { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .board-eraser, .entrance-control { display: none; }
 }

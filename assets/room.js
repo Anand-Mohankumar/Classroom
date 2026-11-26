@@ -741,8 +741,15 @@ window.createClassroomRoom = function createClassroomRoom(stage, canvas, board, 
     for (const [name, value] of Object.entries({ left, top, width: right - left, height: bottom - top })) {
       deskLink.style.setProperty(`--book-${name}`, `${value}px`);
     }
-    const shape = points.map(point => `${point.x - left}px ${point.y - top}px`).join(", ");
-    deskLink.style.setProperty("--book-shape", `polygon(${shape})`);
+    const outer = points.map(point => `${point.x - left}px ${point.y - top}px`);
+    const center = points.reduce((sum, point) => ({ x: sum.x + point.x / 4, y: sum.y + point.y / 4 }), { x: 0, y: 0 });
+    const inner = points.map(point => {
+      const insetX = (center.x - point.x) * Math.min(.3, 12 / (right - left));
+      const insetY = (center.y - point.y) * Math.min(.4, 12 / (bottom - top));
+      return `${point.x - left + insetX}px ${point.y - top + insetY}px`;
+    });
+    deskLink.style.setProperty("--book-shape", `polygon(${outer.join(", ")})`);
+    deskLink.style.setProperty("--book-focus-ring", `polygon(evenodd, ${[...outer, outer[0], ...inner, inner[0]].join(", ")})`);
   }
 
   function resize() {
@@ -793,6 +800,9 @@ window.createClassroomRoom = function createClassroomRoom(stage, canvas, board, 
   }
 
   function walk(onSeated) {
+    progress = 0;
+    lastFrameTime = 0;
+    draw();
     function move(now) {
       if (document.hidden) {
         lastFrameTime = 0;

@@ -582,13 +582,11 @@ html.map-travel::view-transition-new(root) { animation: reveal-chapter .56s cubi
   --flip-y: -.8rem;
   --flip-angle: -88deg;
   position: absolute;
+  display: none;
   top: calc(100% - 4px);
   left: 50%;
-  width: min(21rem, calc(100vw - 1.5rem));
-  visibility: hidden;
+  width: min(21rem, var(--preview-max-width, calc(100vw - 1.5rem)));
   transform: translateX(calc(-50% + var(--preview-shift, 0px)));
-  transition: visibility 0s .28s;
-  pointer-events: none;
 }
 .bookmark-preview-paper {
   display: grid;
@@ -625,12 +623,15 @@ html.map-travel::view-transition-new(root) { animation: reveal-chapter .56s cubi
 .bookmark.preview-above .bookmark-preview-paper {
   transform-origin: center bottom;
 }
-.bookmark.is-previewing .bookmark-preview {
-  visibility: visible;
-  transition-delay: 0s;
-  pointer-events: auto;
-}
+.bookmark.is-previewing .bookmark-preview { display: block; }
 .bookmark.is-previewing .bookmark-preview-paper { opacity: 1; transform: none; }
+
+@starting-style {
+  .bookmark.is-previewing .bookmark-preview-paper {
+    opacity: 0;
+    transform: perspective(720px) translateY(var(--flip-y)) scale(.64) rotateX(var(--flip-angle));
+  }
+}
 
 .chapter-heading {
   position: relative;
@@ -821,10 +822,12 @@ mark { background: #f1d988; color: inherit; }
   kbd { display: none; }
   .chapter-body p, .chapter-body li { font-size: 1.0625rem; }
 }
-@media (max-width: 23rem) {
+@media (max-width: 28rem) {
   .header-inner { padding-inline: .625rem; }
   .wordmark { gap: .4rem; font-size: 1.2rem; }
   .wordmark .book-icon { display: none; }
+}
+@media (max-width: 23rem) {
   .contents-menu summary, .find-button, .pen-button { gap: .35rem; padding-inline: .36rem; font-size: .94rem; }
 }
 @media (prefers-reduced-motion: reduce) {

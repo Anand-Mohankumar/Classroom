@@ -144,6 +144,7 @@ function positionBookmark() {
   const { bookmark, card, surface } = openBookmark;
   const bounds = bookmark.getBoundingClientRect();
   const center = (bounds.left + bounds.right) / 2;
+  card.style.setProperty("--preview-max-width", Math.max(0, root.clientWidth - 24) + "px");
   const half = card.offsetWidth / 2;
   const fitted = Math.max(half + 12, Math.min(root.clientWidth - half - 12, center));
   const above = bounds.top - siteHeader.getBoundingClientRect().bottom - 12;
@@ -199,8 +200,8 @@ for (const link of bookmarks.querySelectorAll("a[data-chapter-link]")) {
   function openPreview(pinned) {
     closeBookmark();
     openBookmark = { bookmark, toggle, card, surface, pinned };
-    positionBookmark();
     bookmark.classList.add("is-previewing");
+    positionBookmark();
     toggle.setAttribute("aria-expanded", "true");
     card.inert = false;
   }

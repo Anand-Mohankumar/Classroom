@@ -7,37 +7,34 @@
   <meta name="description" content="Take a seat in CyberAmo's Classroom and choose a notebook to explore.">
   <title>CyberAmo's Classroom</title>
   <link rel="icon" href="assets/classroom-icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="assets/classroom.css?v=3">
+  <link rel="stylesheet" href="assets/classroom.css?v=4">
   <script src="assets/vendor/three.min.js" defer></script>
   <script src="assets/courtyard-texture.js?v=2" defer></script>
   <script src="assets/surface-textures.js?v=2" defer></script>
   <script src="assets/leaf-texture.js?v=2" defer></script>
   <script src="assets/daylight.js?v=2" defer></script>
   <script src="assets/room-furnishings.js" defer></script>
-  <script src="assets/room.js?v=4" defer></script>
-  <script src="assets/classroom.js?v=3" defer></script>
+  <script src="assets/room.js?v=5" defer></script>
+  <script src="assets/classroom.js?v=4" defer></script>
 </head>
 <body>
   <main class="classroom" aria-label="CyberAmo's Classroom" data-view="loading">
     <div class="room-backdrop" aria-hidden="true"></div>
     <canvas class="room" aria-hidden="true" hidden></canvas>
     <section class="whiteboard" aria-label="Classroom whiteboard" hidden>
+      <h1 class="classroom-title">CyberAmo's Classroom</h1>
       <div class="board-content" aria-live="polite">
-        <h1 class="welcome board-slide">
-          <span class="welcome-name">CyberAmo's</span>
-          <span class="welcome-title">Classroom</span>
-        </h1>
         <div class="notebook board-slide" data-url="notebooks/aicareerroadmap/"
              data-cover-color="#32665b" hidden>AI Career Roadmap</div>
         <div class="notebook board-slide" data-url="notebooks/linux-fundamentals/"
              data-cover-color="#68496e" hidden>Linux Fundamentals (HTB)</div>
         <div class="notebook board-slide" data-url="notebooks/networking-fundamentals/"
              data-cover-color="#365e83" hidden>Networking Fundamentals</div>
-        <div class="board-eraser" aria-hidden="true"></div>
+        <div class="board-eraser" aria-hidden="true" hidden></div>
       </div>
       <nav class="board-controls" aria-label="Browse notebooks">
         <button type="button" class="previous" aria-label="Previous notebook">Prev</button>
-        <p class="board-tip">Scroll or swipe to circle between notebooks. Click the notebook to read</p>
+        <p class="board-tip">Scroll or swipe to browse. Open the book to read.</p>
         <button type="button" class="next" aria-label="Next notebook">Next</button>
       </nav>
     </section>
@@ -57,7 +54,7 @@
         <a href="notebooks/networking-fundamentals/index.html" target="_blank" rel="noopener">Networking Fundamentals</a>
       </nav>
     </noscript>
-    <button type="button" class="skip-entrance" hidden>Skip intro</button>
+    <button type="button" class="entrance-control" hidden>Watch intro</button>
     <img class="classroom-hand" src="assets/pointing-hand-320.webp" width="320" height="320" alt="" aria-hidden="true" hidden>
   </main>
 </body>

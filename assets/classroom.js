@@ -5,23 +5,23 @@
   const canvas = stage.querySelector(".room");
   const board = stage.querySelector(".whiteboard");
   const writing = stage.querySelector(".board-content");
-  const welcome = stage.querySelector(".welcome");
+  const eraser = stage.querySelector(".board-eraser");
   const notebooks = [...stage.querySelectorAll(".notebook")];
   const previous = stage.querySelector(".previous");
   const next = stage.querySelector(".next");
   const deskLink = stage.querySelector(".desk-notebook");
   const deskTitle = deskLink.querySelector(".desk-title");
-  const skip = stage.querySelector(".skip-entrance");
+  const entrance = stage.querySelector(".entrance-control");
   const hand = stage.querySelector(".classroom-hand");
   const motion = matchMedia("(prefers-reduced-motion: reduce)");
   let room;
   let seated = false;
   let active = -1;
-  let pending = null;
-  let eraseDirection = 1;
-  let eraseTimer;
-  let welcomeTimer;
-  let browsed = false;
+  let eraserFrame;
+  let eraserTime;
+  let eraserPosition = 0;
+  let eraserTarget = 0;
+  let eraserVelocity = 0;
   let wheelDistance = 0;
   let lastWheelTime = -Infinity;
   let wheelDirection = 0;
@@ -30,28 +30,37 @@
   let handPosition;
   let handFrame;
 
-  function scheduleWelcome() {
-    clearTimeout(welcomeTimer);
-    if (!document.hidden && seated && !browsed && active < 0 && notebooks.length) {
-      welcomeTimer = setTimeout(() => requestNotebook(0), 2200);
-    }
-  }
-
   function sitDown() {
     if (seated) return;
     room?.sit();
     seated = true;
-    const returnFocus = document.activeElement === skip;
-    skip.hidden = true;
-    deskLink.hidden = false;
-    updateDeskBook();
+    const returnFocus = document.activeElement === entrance && stage.dataset.view === "walking";
+    entrance.textContent = "Watch intro";
+    entrance.hidden = !room || motion.matches;
+    if (active < 0 && notebooks.length) selectNotebook(0);
+    deskLink.hidden = !deskLink.hasAttribute("href");
     scheduleHand();
-    writing.classList.add("is-writing");
-    if (notebooks.length) document.body.classList.add("has-controls");
+    if (notebooks.length > 1) document.body.classList.add("has-controls");
     stage.dataset.view = "seated";
     board.hidden = false;
-    if (returnFocus && notebooks.length) next.focus();
-    scheduleWelcome();
+    if (returnFocus && notebooks.length) (notebooks.length > 1 ? next : deskLink).focus();
+  }
+
+  function watchEntrance() {
+    if (!seated) {
+      sitDown();
+      return;
+    }
+    if (!room || motion.matches) return;
+    seated = false;
+    stopEraser();
+    eraser.hidden = true;
+    touch = null;
+    board.hidden = true;
+    deskLink.hidden = true;
+    stage.dataset.view = "walking";
+    entrance.textContent = "Skip intro";
+    room.walk(sitDown);
   }
 
   function paintHand() {
@@ -99,56 +108,66 @@
     room?.setBookCover(title, color);
   }
 
-  function replaceWriting() {
-    clearTimeout(eraseTimer);
-    const lastSlide = active < 0 ? welcome : notebooks[active];
-    lastSlide.hidden = true;
-    active = pending;
-    pending = null;
-    const slide = active < 0 ? welcome : notebooks[active];
-    slide.hidden = false;
-    writing.classList.remove("is-erasing");
-    writing.classList.add("is-writing");
+  function selectNotebook(index) {
+    if (active === index) return;
+    if (active >= 0) notebooks[active].hidden = true;
+    active = index;
+    notebooks[active].hidden = false;
     updateDeskBook();
   }
 
-  function requestNotebook(index, direction = 1) {
-    if (pending === null && active === index) return;
-    const sameSweep = pending !== null && direction === eraseDirection;
-    pending = index;
-    if (motion.matches) {
-      replaceWriting();
+  function paintEraser() {
+    const position = Math.max(-1, Math.min(1, eraserPosition));
+    eraser.style.transform = `translateX(${position * 410}%) rotate(${position * 12}deg)`;
+    eraser.style.opacity = Math.min(1, (1 - Math.abs(position)) * 5);
+  }
+
+  function stopEraser() {
+    cancelAnimationFrame(eraserFrame);
+    eraserFrame = undefined;
+    eraserTime = undefined;
+    eraserVelocity = 0;
+  }
+
+  function settleEraser(now) {
+    // Solve the critically damped spring from its current position and velocity.
+    const elapsed = eraserTime === undefined ? 0 : Math.min((now - eraserTime) / 1000, .05);
+    const response = 16;
+    const offset = eraserPosition - eraserTarget;
+    const rate = eraserVelocity + response * offset;
+    const decay = Math.exp(-response * elapsed);
+    eraserPosition = eraserTarget + (offset + rate * elapsed) * decay;
+    eraserVelocity = (eraserVelocity - response * rate * elapsed) * decay;
+    paintEraser();
+    if (Math.abs(eraserPosition - eraserTarget) < .004 && Math.abs(eraserVelocity) < .05) {
+      stopEraser();
+      eraser.hidden = true;
       return;
     }
-    if (sameSweep) return;
-    eraseDirection = direction;
-    writing.dataset.wipeDirection = direction > 0 ? "left" : "right";
-    writing.classList.remove("is-writing");
-    writing.classList.add("is-erasing");
-    clearTimeout(eraseTimer);
-    eraseTimer = setTimeout(replaceWriting, 520);
+    eraserTime = now;
+    eraserFrame = requestAnimationFrame(settleEraser);
+  }
+
+  function sweepEraser(direction) {
+    if (motion.matches) return;
+    eraserTarget = -direction;
+    if (eraser.hidden) {
+      eraserPosition = direction;
+      eraser.hidden = false;
+      paintEraser();
+    }
+    if (eraserFrame === undefined) eraserFrame = requestAnimationFrame(settleEraser);
   }
 
   function turn(direction) {
-    if (!seated || !notebooks.length) return;
-    browsed = true;
-    clearTimeout(welcomeTimer);
-    const index = pending ?? active;
-    if (notebooks.length === 1) {
-      requestNotebook(index < 0 ? 0 : -1, direction);
-    } else if (index < 0) {
-      requestNotebook(direction > 0 ? 0 : notebooks.length - 1, direction);
-    } else {
-      requestNotebook((index + direction + notebooks.length) % notebooks.length, direction);
-    }
+    if (!seated || notebooks.length < 2) return;
+    selectNotebook((active + direction + notebooks.length) % notebooks.length);
+    if (!touch?.axis) sweepEraser(direction);
   }
 
-  stage.querySelector(".board-eraser").addEventListener("animationend", (event) => {
-    if (pending !== null && event.animationName === `sweep-to-${writing.dataset.wipeDirection}`) replaceWriting();
-  });
   previous.addEventListener("click", () => turn(-1));
   next.addEventListener("click", () => turn(1));
-  skip.addEventListener("click", sitDown);
+  entrance.addEventListener("click", watchEntrance);
   hand.addEventListener("load", scheduleHand);
   stage.addEventListener("pointermove", event => {
     if (event.pointerType !== "mouse") {
@@ -162,15 +181,18 @@
   stage.addEventListener("pointerleave", hideHand);
   stage.addEventListener("pointercancel", hideHand);
   window.addEventListener("blur", hideHand);
-  document.addEventListener("visibilitychange", scheduleWelcome);
-  motion.addEventListener("change", event => {
-    if (!event.matches) return;
-    sitDown();
-    if (pending !== null) replaceWriting();
+  motion.addEventListener("change", () => {
+    if (motion.matches) {
+      if (document.activeElement === entrance && seated) (notebooks.length > 1 ? next : deskLink).focus();
+      sitDown();
+      stopEraser();
+      eraser.hidden = true;
+    }
+    entrance.hidden = !room || motion.matches;
   });
 
   stage.addEventListener("wheel", event => {
-    if (!seated || event.ctrlKey) return;
+    if (!seated || notebooks.length < 2 || event.ctrlKey) return;
     const dominant = Math.abs(event.deltaY) >= Math.abs(event.deltaX) ? event.deltaY : event.deltaX;
     if (!dominant) return;
     event.preventDefault();
@@ -199,30 +221,56 @@
     suppressTouchClick = false;
     if (event.pointerType !== "touch") return;
     touch = {
-      id: event.pointerId, x: event.clientX, y: event.clientY, started: event.timeStamp, dragging: false,
+      id: event.pointerId, x: event.clientX, y: event.clientY, started: event.timeStamp,
       book: event.target.closest(".desk-notebook[href]")
     };
   });
 
   stage.addEventListener("pointermove", event => {
-    if (touch?.id !== event.pointerId || touch.dragging) return;
-    const distance = Math.max(Math.abs(touch.x - event.clientX), Math.abs(touch.y - event.clientY));
-    if (distance < 14) return;
-    touch.dragging = true;
-    stage.setPointerCapture(event.pointerId);
+    if (touch?.id !== event.pointerId || notebooks.length < 2) return;
+    const dx = event.clientX - touch.x;
+    const dy = event.clientY - touch.y;
+    if (!touch.axis) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) < 14) return;
+      touch.axis = Math.abs(dx) >= Math.abs(dy) ? "x" : "y";
+      touch.distance = Math.max(1, writing.getBoundingClientRect().width * .41);
+      const travel = touch.axis === "x" ? dx : dy;
+      touch.origin = eraser.hidden ? 0 : eraserPosition - travel / touch.distance;
+      stopEraser();
+      stage.setPointerCapture(event.pointerId);
+    }
+    const delta = touch.axis === "x" ? dx : dy;
+    const cutoff = event.timeStamp - 80;
+    touch.samples = (touch.samples ?? []).filter(sample => sample.time >= cutoff);
+    touch.samples.push({ delta, time: event.timeStamp });
+    if (motion.matches) return;
+    eraserPosition = touch.origin + delta / touch.distance;
+    eraser.hidden = false;
+    paintEraser();
   });
 
   stage.addEventListener("pointerup", event => {
     if (touch?.id !== event.pointerId) return;
-    const { x, y, started, dragging, book } = touch;
+    const { x, y, started, axis, distance, samples, book } = touch;
     touch = null;
-    const horizontal = x - event.clientX;
-    const vertical = y - event.clientY;
-    const dominant = Math.abs(horizontal) >= Math.abs(vertical) ? horizontal : vertical;
-    suppressTouchClick = dragging || Math.abs(dominant) >= 32;
-    if (Math.abs(dominant) >= 32) {
-      turn(Math.sign(dominant));
-    } else if (!dragging && Math.abs(dominant) < 14 && event.timeStamp - started < 550 && book &&
+    const dx = event.clientX - x;
+    const dy = event.clientY - y;
+    const delta = axis === "x" ? dx : axis === "y" ? dy : Math.abs(dx) >= Math.abs(dy) ? dx : dy;
+    const first = samples?.find(sample => event.timeStamp - sample.time <= 80);
+    const elapsed = first ? event.timeStamp - first.time : 0;
+    const speed = elapsed >= 8 ? (delta - first.delta) * 1000 / elapsed : 0;
+    const projected = delta + Math.max(-40, Math.min(40, speed * .12));
+    const destination = Math.abs(delta) >= 32 ? delta : Math.abs(delta) >= 18 ? projected : 0;
+    suppressTouchClick = Boolean(axis) || Math.abs(delta) >= 32;
+    if (axis && !motion.matches) {
+      eraserPosition = Math.max(-1, Math.min(1, eraserPosition));
+      eraserVelocity = Math.max(-8, Math.min(8, speed / distance));
+    }
+    if (Math.abs(destination) >= 32) {
+      turn(-Math.sign(destination));
+    } else if (axis && !eraser.hidden) {
+      sweepEraser(eraserPosition > 0 ? -1 : 1);
+    } else if (!axis && Math.abs(delta) < 14 && event.timeStamp - started < 550 && book &&
                book.contains(document.elementFromPoint(event.clientX, event.clientY))) {
       // Open on touch release even when the browser suppresses the follow-up click after a swipe.
       suppressTouchClick = true;
@@ -230,7 +278,14 @@
     }
   });
 
-  stage.addEventListener("pointercancel", () => { touch = null; });
+  function cancelSwipe(event) {
+    if (touch?.id !== event.pointerId) return;
+    const wasDragging = Boolean(touch.axis);
+    touch = null;
+    if (wasDragging && !eraser.hidden) sweepEraser(eraserPosition > 0 ? -1 : 1);
+  }
+  stage.addEventListener("pointercancel", cancelSwipe);
+  stage.addEventListener("lostpointercapture", cancelSwipe);
   stage.addEventListener("click", event => {
     const touchClick = event.pointerType === "touch" || (!event.pointerType && event.isTrusted && event.detail > 0);
     if (suppressTouchClick && touchClick) {
@@ -246,7 +301,7 @@
       sitDown();
       return;
     }
-    if (!seated || event.repeat) return;
+    if (!seated || notebooks.length < 2 || event.repeat) return;
     const direction = { ArrowLeft: -1, ArrowUp: -1, ArrowRight: 1, ArrowDown: 1 }[event.key];
     if (!direction) return;
     event.preventDefault();
@@ -259,6 +314,7 @@
     for (const name of ["left", "top", "width", "height"]) board.style.removeProperty(`--board-${name}`);
     room?.stop();
     room = undefined;
+    entrance.hidden = true;
     sitDown();
   }
 
@@ -276,11 +332,5 @@
     room?.resize();
     scheduleHand();
   }, { passive: true });
-  if (motion.matches) {
-    sitDown();
-  } else {
-    stage.dataset.view = "walking";
-    skip.hidden = false;
-    room.walk(sitDown);
-  }
+  sitDown();
 })();
