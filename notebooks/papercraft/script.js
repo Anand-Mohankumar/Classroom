@@ -43,6 +43,10 @@ for (const frame of document.querySelectorAll(".lecture-table")) {
 }
 
 if (root.classList.contains("is-opening")) {
+  const desk = document.querySelector(".opening-desk");
+  const wood = window.classroomSurfaceTextures?.wood;
+  if (wood) desk.style.setProperty("--opening-desk-texture", `url("${wood}")`);
+
   const book = document.querySelector(".book");
   const { left, top, width } = book.getBoundingClientRect();
   const { clientWidth, clientHeight } = root;

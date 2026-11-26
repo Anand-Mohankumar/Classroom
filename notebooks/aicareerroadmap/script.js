@@ -10,6 +10,10 @@ const backToTop = document.querySelector(".back-to-top");
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
 if (root.classList.contains("is-opening")) {
+  const desk = document.querySelector(".opening-desk");
+  const wood = window.classroomSurfaceTextures?.wood;
+  if (wood) desk.style.setProperty("--opening-desk-texture", `url("${wood}")`);
+
   const book = document.querySelector(".book");
   const cover = book.querySelector(".cover");
   const openingHash = location.hash;

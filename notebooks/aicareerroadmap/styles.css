@@ -208,9 +208,8 @@ kbd { color: var(--muted); font: 700 .88rem/1 var(--writing); border: 1px solid 
     z-index: 4;
     pointer-events: none;
     background:
-      radial-gradient(ellipse at 37% 12%, #fff9ee9e, transparent 73%),
-      linear-gradient(135deg, #f6e9d1, #dac5a6 80%), var(--texture) #ede0c9;
-    background-blend-mode: normal, multiply, normal;
+      radial-gradient(ellipse at 37% 12%, #fff4df38, transparent 73%),
+      var(--opening-desk-texture, none) center / cover no-repeat #a68157;
   }
   .is-opening:not(.is-opening-ready) .site-header { opacity: 0; }
   .is-opening-ready .opening-desk,
